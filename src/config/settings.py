@@ -1,6 +1,3 @@
-"""
-Configuration centralisée de l'application
-"""
 import os
 from pathlib import Path
 from dotenv import load_dotenv
