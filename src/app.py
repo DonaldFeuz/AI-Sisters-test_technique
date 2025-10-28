@@ -2,15 +2,30 @@
 Application principale Streamlit - RAG Legal Chatbot
 Point d'entrée de l'application
 """
-import streamlit as st
-from pathlib import Path
-from loguru import logger
 import sys
+from pathlib import Path
 
-# Configuration du logging
-from src.config.settings import LOGS_DIR
+# ✅ 1. D'ABORD : Ajouter le répertoire racine au PYTHONPATH
+ROOT_DIR = Path(__file__).parent.parent
+sys.path.insert(0, str(ROOT_DIR))
 
-# Configurer loguru
+# ✅ 2. ENSUITE : Importer les modules externes
+import streamlit as st
+from loguru import logger
+
+# ✅ 3. ENFIN : Importer depuis src
+from src.config.settings import (
+    LOGS_DIR,
+    APP_TITLE,
+    APP_ICON
+)
+from src.utils.document_processor import DocumentProcessor
+from src.utils.vector_store import VectorStoreManager
+from src.utils.llm_handler import LLMHandler
+from src.components.chat_interface import render_chat_interface
+from src.components.document_manager import render_document_manager
+
+# ✅ 4. Configuration du logging (après imports)
 logger.remove()  # Supprimer le handler par défaut
 logger.add(
     sys.stderr,
@@ -24,14 +39,6 @@ logger.add(
     level="DEBUG",
     format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function} - {message}"
 )
-
-# Imports des composants
-from src.config.settings import APP_TITLE, APP_ICON
-from src.utils.document_processor import DocumentProcessor
-from src.utils.vector_store import VectorStoreManager
-from src.utils.llm_handler import LLMHandler
-from src.components.chat_interface import render_chat_interface
-from src.components.document_manager import render_document_manager
 
 
 def main():
@@ -63,22 +70,31 @@ def main():
         st.title(f"{APP_ICON} {APP_TITLE}")
         st.markdown("---")
         
-        # Sélection de page
+        # Initialiser la page par défaut dans session_state si elle n'existe pas
+        if "page" not in st.session_state:
+            st.session_state.page = "💬 Chat"
+        
+        # Sélection de page (lié à session_state)
         page = st.radio(
             "Navigation",
             options=["💬 Chat", "📄 Gestion des Documents"],
-            label_visibility="collapsed"
+            index=0 if st.session_state.page == "💬 Chat" else 1,
+            label_visibility="collapsed",
+            key="page_selector"
         )
+        
+        # Mettre à jour session_state
+        st.session_state.page = page
         
         st.markdown("---")
         
         # Informations
         _display_sidebar_info(vector_store_manager)
     
-    # Afficher la page sélectionnée
-    if page == "💬 Chat":
+    # Afficher la page sélectionnée (utiliser session_state)
+    if st.session_state.page == "💬 Chat":
         render_chat_interface(llm_handler, vector_store_manager)
-    elif page == "📄 Gestion des Documents":
+    elif st.session_state.page == "📄 Gestion des Documents":
         render_document_manager(vector_store_manager, document_processor)
     
     # Footer
@@ -200,20 +216,6 @@ def _inject_custom_css():
         /* Améliorer les expanders */
         .streamlit-expanderHeader {
             font-weight: 600;
-        }
-        
-        /* Footer fixe */
-        .footer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: rgba(240, 242, 246, 0.9);
-            padding: 0.5rem;
-            text-align: center;
-            font-size: 0.8rem;
-            color: #666;
-            z-index: 999;
         }
         </style>
     """, unsafe_allow_html=True)

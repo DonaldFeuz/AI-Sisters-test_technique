@@ -57,9 +57,10 @@ def _display_empty_state():
         "des documents dans la section **📄 Gestion des Documents**."
     )
     
-    # Bouton pour aller vers la page de gestion
+    # Bouton pour changer de page
     if st.button("📄 Aller à la Gestion des Documents", type="primary"):
-        st.switch_page("src/components/document_manager.py")
+        st.session_state.page = "📄 Gestion des Documents"
+        st.rerun()
 
 
 def _display_database_info(vector_store_manager: VectorStoreManager):
