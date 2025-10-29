@@ -24,6 +24,7 @@ from src.utils.vector_store import VectorStoreManager
 from src.utils.llm_handler import LLMHandler
 from src.components.chat_interface import render_chat_interface
 from src.components.document_manager import render_document_manager
+from src.utils.conversation_manager import ConversationManager
 
 # ✅ 4. Configuration du logging (après imports)
 logger.remove()  # Supprimer le handler par défaut
@@ -64,6 +65,7 @@ def main():
     vector_store_manager = _get_vector_store_manager()
     document_processor = _get_document_processor()
     llm_handler = _get_llm_handler(vector_store_manager)
+    conversation_manager = _get_conversation_manager()
     
     # Sidebar de navigation
     with st.sidebar:
@@ -93,7 +95,7 @@ def main():
     
     # Afficher la page sélectionnée (utiliser session_state)
     if st.session_state.page == "💬 Chat":
-        render_chat_interface(llm_handler, vector_store_manager)
+        render_chat_interface(llm_handler, vector_store_manager, conversation_manager)
     elif st.session_state.page == "📄 Gestion des Documents":
         render_document_manager(vector_store_manager, document_processor)
     
@@ -130,6 +132,12 @@ def _get_llm_handler(_vector_store_manager: VectorStoreManager) -> LLMHandler:
     """
     logger.info("🔧 Initialisation du LLMHandler...")
     return LLMHandler(_vector_store_manager)
+
+@st.cache_resource
+def _get_conversation_manager() -> ConversationManager:
+    """Initialise et cache le ConversationManager"""
+    logger.info("🔧 Initialisation du ConversationManager...")
+    return ConversationManager()
 
 
 def _display_sidebar_info(vector_store_manager: VectorStoreManager):
