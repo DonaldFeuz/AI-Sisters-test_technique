@@ -8,11 +8,13 @@ from loguru import logger
 
 from src.utils.llm_handler import LLMHandler
 from src.utils.vector_store import VectorStoreManager
+from src.utils.conversation_manager import ConversationManager
 
 
 def render_chat_interface(
     llm_handler: LLMHandler,
-    vector_store_manager: VectorStoreManager
+    vector_store_manager: VectorStoreManager,
+    conversation_manager: ConversationManager
 ):
     """
     Affiche l'interface de chat
@@ -20,6 +22,7 @@ def render_chat_interface(
     Args:
         llm_handler: Gestionnaire LLM
         vector_store_manager: Gestionnaire de base vectorielle
+        conversation_manager: Gestionnaire de conversations
     """
     st.title("💬 Chat avec vos Documents Juridiques")
     st.markdown("---")
@@ -37,79 +40,68 @@ def render_chat_interface(
     st.markdown("---")
     
     # Initialiser l'historique de conversation
-    _initialize_chat_history()
+    _initialize_chat_state(conversation_manager)
     
-    # Sidebar avec options
-    _render_sidebar(llm_handler)
+    # Sidebar avec options ET historique
+    _render_sidebar(llm_handler, conversation_manager)
     
     # Afficher l'historique de conversation
     _display_chat_history()
     
     # Zone de saisie utilisateur
-    _render_chat_input(llm_handler)
+    _render_chat_input(llm_handler, conversation_manager)
 
 
-def _display_empty_state():
-    """Affiche un message si aucun document n'est chargé"""
-    st.info(
-        "📭 **Aucun document chargé dans la base.**\n\n"
-        "Pour commencer à poser des questions, veuillez d'abord uploader "
-        "des documents dans la section **📄 Gestion des Documents**."
-    )
+def _initialize_chat_state(conversation_manager: ConversationManager):
+    """Initialise l'état de la conversation dans st.session_state"""
     
-    # Bouton pour changer de page
-    if st.button("📄 Aller à la Gestion des Documents", type="primary"):
-        st.session_state.page = "📄 Gestion des Documents"
-        st.rerun()
-
-
-def _display_database_info(vector_store_manager: VectorStoreManager):
-    """Affiche les informations sur la base de documents"""
-    stats = vector_store_manager.get_stats()
+    # ID de la conversation courante
+    if "current_conversation_id" not in st.session_state:
+        st.session_state.current_conversation_id = conversation_manager.generate_conversation_id()
+        logger.info(f"🆕 Nouvelle conversation: {st.session_state.current_conversation_id}")
     
-    with st.expander("ℹ️ Informations sur la Base de Documents", expanded=False):
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.metric("📊 Total Chunks", stats["total_chunks"])
-        
-        with col2:
-            st.metric("📁 Documents", stats["total_sources"])
-        
-        with col3:
-            st.metric("🔍 Top-K", stats["top_k_results"])
-        
-        if stats["sources"]:
-            st.write("**📚 Documents disponibles :**")
-            for source in stats["sources"]:
-                st.write(f"- {source}")
-
-
-def _initialize_chat_history():
-    """Initialise l'historique de conversation dans st.session_state"""
+    # Historique de la conversation courante
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
         logger.info("💬 Historique de conversation initialisé")
     
+    # Compteur de messages
     if "message_count" not in st.session_state:
         st.session_state.message_count = 0
+    
+    # Flag pour savoir si modifié depuis dernière sauvegarde
+    if "conversation_modified" not in st.session_state:
+        st.session_state.conversation_modified = False
 
 
-def _render_sidebar(llm_handler: LLMHandler):
-    """Affiche la sidebar avec options et informations"""
+def _render_sidebar(llm_handler: LLMHandler, conversation_manager: ConversationManager):
+    """Affiche la sidebar avec options, historique et informations"""
     with st.sidebar:
         st.header("⚙️ Options")
         
         # Bouton pour nouvelle conversation
         if st.button("🆕 Nouvelle Conversation", use_container_width=True):
-            _clear_chat_history()
+            _save_current_conversation(conversation_manager)
+            _start_new_conversation(conversation_manager)
             st.rerun()
+        
+        # Bouton pour sauvegarder
+        if st.button("💾 Sauvegarder", use_container_width=True, disabled=not st.session_state.conversation_modified):
+            if _save_current_conversation(conversation_manager):
+                st.success("✅ Conversation sauvegardée !")
+                st.session_state.conversation_modified = False
+        
+        st.markdown("---")
+        
+        # Historique des conversations
+        st.subheader("📚 Historique")
+        _display_conversation_history(conversation_manager)
         
         st.markdown("---")
         
         # Compteur de messages
         st.metric(
-            "📨 Messages dans la conversation",
+            "📨 Messages (conversation actuelle)",
             st.session_state.message_count
         )
         
@@ -150,6 +142,131 @@ def _render_sidebar(llm_handler: LLMHandler):
             """)
 
 
+def _display_conversation_history(conversation_manager: ConversationManager):
+    """Affiche la liste des conversations sauvegardées"""
+    conversations = conversation_manager.list_conversations()
+    
+    if not conversations:
+        st.info("Aucune conversation sauvegardée")
+        return
+    
+    st.write(f"**{len(conversations)} conversation(s) :**")
+    
+    for conv in conversations[:10]:  # Limiter à 10 pour ne pas surcharger
+        col1, col2 = st.columns([4, 1])
+        
+        with col1:
+            # Afficher titre avec indicateur si c'est la conversation courante
+            is_current = conv["id"] == st.session_state.current_conversation_id
+            prefix = "▶️ " if is_current else "📄 "
+            
+            if st.button(
+                f"{prefix}{conv['title'][:30]}",
+                key=f"load_{conv['id']}",
+                use_container_width=True,
+                type="primary" if is_current else "secondary"
+            ):
+                _load_conversation(conversation_manager, conv["id"])
+                st.rerun()
+        
+        with col2:
+            if st.button(
+                "🗑️",
+                key=f"delete_{conv['id']}",
+                help="Supprimer",
+                disabled=is_current  # Ne pas permettre de supprimer la conversation courante
+            ):
+                if conversation_manager.delete_conversation(conv["id"]):
+                    st.success("✅ Supprimée")
+                    st.rerun()
+        
+        # Afficher infos (petite taille)
+        st.caption(f"💬 {conv['message_count']} msgs | 🕒 {conv['updated_at']}")
+
+
+def _save_current_conversation(conversation_manager: ConversationManager) -> bool:
+    """Sauvegarde la conversation courante"""
+    if not st.session_state.chat_history:
+        logger.info("⚠️ Aucun message à sauvegarder")
+        return False
+    
+    success = conversation_manager.save_conversation(
+        conversation_id=st.session_state.current_conversation_id,
+        messages=st.session_state.chat_history
+    )
+    
+    if success:
+        st.session_state.conversation_modified = False
+    
+    return success
+
+
+def _start_new_conversation(conversation_manager: ConversationManager):
+    """Démarre une nouvelle conversation"""
+    # Générer un nouvel ID
+    st.session_state.current_conversation_id = conversation_manager.generate_conversation_id()
+    st.session_state.chat_history = []
+    st.session_state.message_count = 0
+    st.session_state.conversation_modified = False
+    
+    logger.info(f"🆕 Nouvelle conversation démarrée: {st.session_state.current_conversation_id}")
+
+
+def _load_conversation(conversation_manager: ConversationManager, conversation_id: str):
+    """Charge une conversation existante"""
+    # Sauvegarder la conversation courante si modifiée
+    if st.session_state.conversation_modified:
+        _save_current_conversation(conversation_manager)
+    
+    # Charger la conversation
+    conversation_data = conversation_manager.load_conversation(conversation_id)
+    
+    if conversation_data:
+        st.session_state.current_conversation_id = conversation_id
+        st.session_state.chat_history = conversation_data["messages"]
+        st.session_state.message_count = len(conversation_data["messages"])
+        st.session_state.conversation_modified = False
+        
+        logger.info(f"📂 Conversation chargée: {conversation_id}")
+    else:
+        st.error("❌ Impossible de charger la conversation")
+
+
+def _display_empty_state():
+    """Affiche un message si aucun document n'est chargé"""
+    st.info(
+        "📭 **Aucun document chargé dans la base.**\n\n"
+        "Pour commencer à poser des questions, veuillez d'abord uploader "
+        "des documents dans la section **📄 Gestion des Documents**."
+    )
+    
+    st.warning(
+        "👈 Utilisez la navigation dans la **barre latérale** pour accéder à la gestion des documents."
+    )
+
+
+def _display_database_info(vector_store_manager: VectorStoreManager):
+    """Affiche les informations sur la base de documents"""
+    stats = vector_store_manager.get_stats()
+    
+    with st.expander("ℹ️ Informations sur la Base de Documents", expanded=False):
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("📊 Total Chunks", stats["total_chunks"])
+        
+        with col2:
+            st.metric("📁 Documents", stats["total_sources"])
+        
+        with col3:
+            st.metric("🔍 Top-K", stats["top_k_results"])
+        
+        if stats["sources"]:
+            st.write("**📚 Documents disponibles :**")
+            for source in stats["sources"]:
+                st.write(f"- {source}")
+
+
 def _display_chat_history():
     """Affiche l'historique de conversation"""
     if not st.session_state.chat_history:
@@ -172,7 +289,7 @@ def _display_chat_history():
                 st.caption(f"🕒 {message['timestamp']}")
 
 
-def _render_chat_input(llm_handler: LLMHandler):
+def _render_chat_input(llm_handler: LLMHandler, conversation_manager: ConversationManager):
     """Zone de saisie pour les questions utilisateur"""
     
     # Input utilisateur
@@ -182,10 +299,14 @@ def _render_chat_input(llm_handler: LLMHandler):
     )
     
     if user_question:
-        _process_user_question(user_question, llm_handler)
+        _process_user_question(user_question, llm_handler, conversation_manager)
 
 
-def _process_user_question(question: str, llm_handler: LLMHandler):
+def _process_user_question(
+    question: str, 
+    llm_handler: LLMHandler,
+    conversation_manager: ConversationManager
+):
     """Traite la question de l'utilisateur et génère une réponse"""
     
     # Valider la question
@@ -202,6 +323,7 @@ def _process_user_question(question: str, llm_handler: LLMHandler):
         "timestamp": timestamp
     })
     st.session_state.message_count += 1
+    st.session_state.conversation_modified = True
     
     # Afficher la question immédiatement
     with st.chat_message("user"):
@@ -247,66 +369,13 @@ def _process_user_question(question: str, llm_handler: LLMHandler):
         "timestamp": response_timestamp
     })
     st.session_state.message_count += 1
+    st.session_state.conversation_modified = True
     
     logger.info(
         f"💬 Question traitée: '{question[:50]}...' | "
         f"Réponse: {len(response['answer'])} caractères | "
         f"Sources: {len(response['sources'])}"
     )
-
-
-def _clear_chat_history():
-    """Efface l'historique de conversation"""
-    st.session_state.chat_history = []
-    st.session_state.message_count = 0
-    logger.info("🗑️ Historique de conversation effacé")
-
-
-def _export_conversation():
-    """Exporte la conversation en format texte (bonus)"""
-    if not st.session_state.chat_history:
-        st.warning("⚠️ Aucune conversation à exporter")
-        return
     
-    # Générer le contenu
-    export_content = "# Conversation - RAG Legal Chatbot\n\n"
-    export_content += f"**Date :** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-    export_content += "---\n\n"
-    
-    for idx, message in enumerate(st.session_state.chat_history, 1):
-        role = "👤 Utilisateur" if message["role"] == "user" else "🤖 Assistant"
-        export_content += f"## Message {idx} - {role}\n\n"
-        export_content += f"{message['content']}\n\n"
-        
-        if message["role"] == "assistant" and "sources" in message:
-            export_content += "**Sources :**\n"
-            for source in message["sources"]:
-                export_content += f"- {source}\n"
-            export_content += "\n"
-        
-        export_content += f"*{message.get('timestamp', '')}*\n\n"
-        export_content += "---\n\n"
-    
-    return export_content
-
-
-# Fonction bonus pour la sidebar (export)
-def render_export_button():
-    """Affiche un bouton d'export dans la sidebar"""
-    with st.sidebar:
-        st.markdown("---")
-        st.subheader("💾 Export")
-        
-        if st.button("📥 Exporter la Conversation", use_container_width=True):
-            if st.session_state.get("chat_history"):
-                export_content = _export_conversation()
-                
-                st.download_button(
-                    label="📄 Télécharger (TXT)",
-                    data=export_content,
-                    file_name=f"conversation_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-                    mime="text/plain",
-                    use_container_width=True
-                )
-            else:
-                st.warning("⚠️ Aucune conversation à exporter")
+    # Sauvegarde automatique après chaque échange
+    _save_current_conversation(conversation_manager)
