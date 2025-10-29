@@ -7,14 +7,14 @@ from datetime import datetime
 from typing import List, Dict, Optional
 from loguru import logger
 
-from src.config.settings import DATA_DIR
+from src.config.settings import DATA_DIR, CONVERSATIONS_DIR
 
 
 class ConversationManager:
     """Gestionnaire pour sauvegarder et charger les conversations"""
     
     def __init__(self):
-        self.conversations_dir = DATA_DIR / "conversations"
+        self.conversations_dir = CONVERSATIONS_DIR
         self.conversations_dir.mkdir(parents=True, exist_ok=True)
         logger.info(f"✅ ConversationManager initialisé (dir: {self.conversations_dir})")
     

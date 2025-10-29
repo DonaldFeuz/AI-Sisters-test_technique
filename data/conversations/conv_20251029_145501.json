@@ -1,0 +1,22 @@
+{
+  "id": "conv_20251029_145501",
+  "title": "nous avonts le contrat de donald ?",
+  "created_at": "20251029 145501",
+  "updated_at": "2025-10-29 14:59:13",
+  "message_count": 2,
+  "messages": [
+    {
+      "role": "user",
+      "content": "nous avonts le contrat de donald ?",
+      "timestamp": "14:55:22"
+    },
+    {
+      "role": "assistant",
+      "content": "Oui, le contrat de Donald Feuzing Ntemma est disponible dans les documents fournis. Il s'agit d'un contrat de travail à durée indéterminée de chantier avec la société My Kiwi. Le contrat précise notamment que Donald Feuzing Ntemma est engagé en qualité d'Ingénieur d'Étude et Développement, avec un coefficient de 115 et une position 2.1, conformément à la Convention Collective Nationale des \"Personnels de Bureaux d'Études Techniques, des Cabinets d'Ingénieurs-conseils et des Sociétés de Conseil\" (SYNTEC). Le contrat prendra effet à la date de démarrage effectif du chantier, le 01/10/2025, et se terminera à l’achèvement du chantier ou en cas d’annulation de celui-ci. \n\nSources : [contratDF.txt, Chunks: 0, 2, 3, 5]",
+      "sources": [
+        "contratDF.txt"
+      ],
+      "timestamp": "14:55:28"
+    }
+  ]
+}

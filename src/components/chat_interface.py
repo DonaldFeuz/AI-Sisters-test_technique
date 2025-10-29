@@ -1,5 +1,6 @@
 """
 Page Streamlit : Interface de chat avec RAG
+Version améliorée avec design moderne et historique persistant
 """
 import streamlit as st
 from typing import List, Dict
@@ -17,15 +18,23 @@ def render_chat_interface(
     conversation_manager: ConversationManager
 ):
     """
-    Affiche l'interface de chat
+    Affiche l'interface de chat avec design amélioré
     
     Args:
         llm_handler: Gestionnaire LLM
         vector_store_manager: Gestionnaire de base vectorielle
         conversation_manager: Gestionnaire de conversations
     """
-    st.title("💬 Chat avec vos Documents Juridiques")
-    st.markdown("---")
+    # Header avec style
+    st.markdown("""
+        <div style='text-align: center; padding: 2rem 0; background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%); 
+                    border-radius: 16px; margin-bottom: 2rem; color: white;'>
+            <h1 style='color: white; margin: 0; font-size: 2.5rem;'>💬 Chat Juridique Intelligent</h1>
+            <p style='color: rgba(255,255,255,0.9); margin-top: 0.5rem; font-size: 1.1rem;'>
+                Posez vos questions, obtenez des réponses précises avec sources
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
     
     # Vérifier si des documents sont chargés
     doc_count = vector_store_manager.get_document_count()
@@ -34,19 +43,24 @@ def render_chat_interface(
         _display_empty_state()
         return
     
-    # Afficher les informations sur la base
-    _display_database_info(vector_store_manager)
-    
-    st.markdown("---")
+    # Afficher les informations sur la base (version compacte)
+    _display_database_info_compact(vector_store_manager)
     
     # Initialiser l'historique de conversation
     _initialize_chat_state(conversation_manager)
     
-    # Sidebar avec options ET historique
-    _render_sidebar(llm_handler, conversation_manager)
+    # Bouton "Nouvelle conversation" dans la page principale
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("🆕 Nouvelle Conversation", use_container_width=True, type="secondary"):
+            _save_current_conversation(conversation_manager)
+            _start_new_conversation(conversation_manager)
+            st.rerun()
+    
+    st.markdown("---")
     
     # Afficher l'historique de conversation
-    _display_chat_history()
+    _display_chat_history_styled()
     
     # Zone de saisie utilisateur
     _render_chat_input(llm_handler, conversation_manager)
@@ -74,116 +88,6 @@ def _initialize_chat_state(conversation_manager: ConversationManager):
         st.session_state.conversation_modified = False
 
 
-def _render_sidebar(llm_handler: LLMHandler, conversation_manager: ConversationManager):
-    """Affiche la sidebar avec options, historique et informations"""
-    with st.sidebar:
-        st.header("⚙️ Options")
-        
-        # Bouton pour nouvelle conversation
-        if st.button("🆕 Nouvelle Conversation", use_container_width=True):
-            _save_current_conversation(conversation_manager)
-            _start_new_conversation(conversation_manager)
-            st.rerun()
-        
-        # Bouton pour sauvegarder
-        if st.button("💾 Sauvegarder", use_container_width=True, disabled=not st.session_state.conversation_modified):
-            if _save_current_conversation(conversation_manager):
-                st.success("✅ Conversation sauvegardée !")
-                st.session_state.conversation_modified = False
-        
-        st.markdown("---")
-        
-        # Historique des conversations
-        st.subheader("📚 Historique")
-        _display_conversation_history(conversation_manager)
-        
-        st.markdown("---")
-        
-        # Compteur de messages
-        st.metric(
-            "📨 Messages (conversation actuelle)",
-            st.session_state.message_count
-        )
-        
-        st.markdown("---")
-        
-        # Informations sur le modèle
-        st.subheader("🤖 Configuration du Modèle")
-        
-        from src.config.settings import LLM_MODEL, LLM_TEMPERATURE, MAX_TOKENS
-        
-        st.write(f"**Modèle :** `{LLM_MODEL}`")
-        st.write(f"**Température :** `{LLM_TEMPERATURE}`")
-        st.write(f"**Max Tokens :** `{MAX_TOKENS}`")
-        
-        st.markdown("---")
-        
-        # Afficher le prompt système (bonus)
-        with st.expander("📋 Voir le Prompt Système"):
-            st.code(llm_handler.get_system_prompt(), language="text")
-        
-        st.markdown("---")
-        
-        # Conseils d'utilisation
-        with st.expander("💡 Conseils d'Utilisation"):
-            st.markdown("""
-            **Pour obtenir les meilleures réponses :**
-            
-            1. 🎯 Soyez précis dans vos questions
-            2. 📝 Mentionnez le type de document si nécessaire
-            3. 🔍 Utilisez des termes juridiques appropriés
-            4. 💬 Posez des questions de suivi pour approfondir
-            5. ✅ Vérifiez toujours les sources citées
-            
-            **Exemples de bonnes questions :**
-            - "Quelle est la clause de confidentialité dans le contrat ?"
-            - "Quelles sont les obligations des parties ?"
-            - "Y a-t-il une durée mentionnée dans les documents ?"
-            """)
-
-
-def _display_conversation_history(conversation_manager: ConversationManager):
-    """Affiche la liste des conversations sauvegardées"""
-    conversations = conversation_manager.list_conversations()
-    
-    if not conversations:
-        st.info("Aucune conversation sauvegardée")
-        return
-    
-    st.write(f"**{len(conversations)} conversation(s) :**")
-    
-    for conv in conversations[:10]:  # Limiter à 10 pour ne pas surcharger
-        col1, col2 = st.columns([4, 1])
-        
-        with col1:
-            # Afficher titre avec indicateur si c'est la conversation courante
-            is_current = conv["id"] == st.session_state.current_conversation_id
-            prefix = "▶️ " if is_current else "📄 "
-            
-            if st.button(
-                f"{prefix}{conv['title'][:30]}",
-                key=f"load_{conv['id']}",
-                use_container_width=True,
-                type="primary" if is_current else "secondary"
-            ):
-                _load_conversation(conversation_manager, conv["id"])
-                st.rerun()
-        
-        with col2:
-            if st.button(
-                "🗑️",
-                key=f"delete_{conv['id']}",
-                help="Supprimer",
-                disabled=is_current  # Ne pas permettre de supprimer la conversation courante
-            ):
-                if conversation_manager.delete_conversation(conv["id"]):
-                    st.success("✅ Supprimée")
-                    st.rerun()
-        
-        # Afficher infos (petite taille)
-        st.caption(f"💬 {conv['message_count']} msgs | 🕒 {conv['updated_at']}")
-
-
 def _save_current_conversation(conversation_manager: ConversationManager) -> bool:
     """Sauvegarde la conversation courante"""
     if not st.session_state.chat_history:
@@ -197,6 +101,7 @@ def _save_current_conversation(conversation_manager: ConversationManager) -> boo
     
     if success:
         st.session_state.conversation_modified = False
+        logger.info(f"💾 Conversation sauvegardée: {st.session_state.current_conversation_id}")
     
     return success
 
@@ -212,79 +117,93 @@ def _start_new_conversation(conversation_manager: ConversationManager):
     logger.info(f"🆕 Nouvelle conversation démarrée: {st.session_state.current_conversation_id}")
 
 
-def _load_conversation(conversation_manager: ConversationManager, conversation_id: str):
-    """Charge une conversation existante"""
-    # Sauvegarder la conversation courante si modifiée
-    if st.session_state.conversation_modified:
-        _save_current_conversation(conversation_manager)
-    
-    # Charger la conversation
-    conversation_data = conversation_manager.load_conversation(conversation_id)
-    
-    if conversation_data:
-        st.session_state.current_conversation_id = conversation_id
-        st.session_state.chat_history = conversation_data["messages"]
-        st.session_state.message_count = len(conversation_data["messages"])
-        st.session_state.conversation_modified = False
-        
-        logger.info(f"📂 Conversation chargée: {conversation_id}")
-    else:
-        st.error("❌ Impossible de charger la conversation")
-
-
 def _display_empty_state():
-    """Affiche un message si aucun document n'est chargé"""
-    st.info(
-        "📭 **Aucun document chargé dans la base.**\n\n"
-        "Pour commencer à poser des questions, veuillez d'abord uploader "
-        "des documents dans la section **📄 Gestion des Documents**."
-    )
-    
-    st.warning(
-        "👈 Utilisez la navigation dans la **barre latérale** pour accéder à la gestion des documents."
-    )
+    """État vide stylisé quand aucun document n'est chargé"""
+    st.markdown("""
+        <div style='text-align: center; padding: 4rem 2rem; background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%); 
+                    border-radius: 16px; margin: 2rem 0;'>
+            <div style='font-size: 5rem; margin-bottom: 1rem;'>📭</div>
+            <h2 style='color: #92400E; margin-bottom: 1rem;'>Aucun document chargé</h2>
+            <p style='color: #78350F; font-size: 1.1rem; margin-bottom: 1.5rem;'>
+                Pour commencer à poser des questions, veuillez d'abord uploader des documents 
+                dans la section <strong>📄 Documents</strong>.
+            </p>
+            <div style='background: white; padding: 1rem; border-radius: 12px; display: inline-block; margin-top: 1rem;'>
+                <p style='color: #1F2937; margin: 0;'>
+                    👈 Utilisez la <strong>navigation dans la barre latérale</strong>
+                </p>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
 
-def _display_database_info(vector_store_manager: VectorStoreManager):
-    """Affiche les informations sur la base de documents"""
+def _display_database_info_compact(vector_store_manager: VectorStoreManager):
+    """Affiche les informations de la base de manière compacte et élégante"""
     stats = vector_store_manager.get_stats()
     
-    with st.expander("ℹ️ Informations sur la Base de Documents", expanded=False):
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.metric("📊 Total Chunks", stats["total_chunks"])
-        
-        with col2:
-            st.metric("📁 Documents", stats["total_sources"])
-        
-        with col3:
-            st.metric("🔍 Top-K", stats["top_k_results"])
-        
-        if stats["sources"]:
-            st.write("**📚 Documents disponibles :**")
-            for source in stats["sources"]:
-                st.write(f"- {source}")
+    # Métriques en ligne
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("📊 Chunks", stats["total_chunks"], help="Nombre total de segments de texte")
+    
+    with col2:
+        st.metric("📁 Documents", stats["total_sources"], help="Nombre de documents chargés")
+    
+    with col3:
+        st.metric("🔍 Recherche", f"Top-{stats['top_k_results']}", help="Nombre de chunks récupérés par question")
+    
+    with col4:
+        status_emoji = "✅" if stats["status"] == "ready" else "⚠️"
+        status_text = "Prêt" if stats["status"] == "ready" else "En attente"
+        st.metric("📡 Statut", f"{status_emoji} {status_text}")
+    
+    # Documents disponibles (collapsible)
+    if stats["sources"]:
+        with st.expander("📚 Documents disponibles", expanded=False):
+            for idx, source in enumerate(stats["sources"], 1):
+                st.markdown(f"`{idx}.` **{source}**")
 
 
-def _display_chat_history():
-    """Affiche l'historique de conversation"""
+def _display_chat_history_styled():
+    """Affiche l'historique de conversation avec style amélioré"""
     if not st.session_state.chat_history:
-        st.info("👋 Posez votre première question ci-dessous pour commencer !")
+        # Message de bienvenue stylisé
+        st.markdown("""
+            <div style='text-align: center; padding: 3rem; background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); 
+                        border-radius: 16px; margin: 2rem 0;'>
+                <div style='font-size: 4rem; margin-bottom: 1rem;'>👋</div>
+                <h2 style='color: #1F2937; margin-bottom: 1rem;'>Bienvenue !</h2>
+                <p style='color: #6B7280; font-size: 1.1rem;'>
+                    Posez votre première question ci-dessous pour commencer à explorer vos documents juridiques.
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
         return
     
-    # Afficher chaque message
-    for message in st.session_state.chat_history:
-        with st.chat_message(message["role"]):
+    # Afficher chaque message avec animations
+    for idx, message in enumerate(st.session_state.chat_history):
+        with st.chat_message(message["role"], avatar="👤" if message["role"] == "user" else "🤖"):
             st.markdown(message["content"])
             
-            # Afficher les sources si disponibles (pour les réponses assistant)
+            # Afficher les sources avec design amélioré (pour les réponses assistant)
             if message["role"] == "assistant" and "sources" in message and message["sources"]:
-                with st.expander("📚 Sources utilisées"):
-                    for source in message["sources"]:
-                        st.write(f"- {source}")
+                st.markdown("---")
+                st.markdown("**📚 Sources utilisées :**")
+                
+                # Afficher sources avec badges
+                sources_html = "<div style='display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;'>"
+                for source in message["sources"]:
+                    sources_html += f"""
+                        <span style='background: #DBEAFE; color: #1E40AF; padding: 0.25rem 0.75rem; 
+                                     border-radius: 12px; font-size: 0.85rem; font-weight: 500;'>
+                            📄 {source}
+                        </span>
+                    """
+                sources_html += "</div>"
+                st.markdown(sources_html, unsafe_allow_html=True)
             
-            # Afficher le timestamp
+            # Timestamp stylisé
             if "timestamp" in message:
                 st.caption(f"🕒 {message['timestamp']}")
 
@@ -307,7 +226,14 @@ def _process_user_question(
     llm_handler: LLMHandler,
     conversation_manager: ConversationManager
 ):
-    """Traite la question de l'utilisateur et génère une réponse"""
+    """
+    Traite la question de l'utilisateur et génère une réponse
+    
+    Args:
+        question: Question de l'utilisateur
+        llm_handler: Gestionnaire LLM
+        conversation_manager: Gestionnaire de conversations
+    """
     
     # Valider la question
     is_valid, error_msg = llm_handler.validate_question(question)
@@ -326,12 +252,12 @@ def _process_user_question(
     st.session_state.conversation_modified = True
     
     # Afficher la question immédiatement
-    with st.chat_message("user"):
+    with st.chat_message("user", avatar="👤"):
         st.markdown(question)
         st.caption(f"🕒 {timestamp}")
     
     # Générer la réponse
-    with st.chat_message("assistant"):
+    with st.chat_message("assistant", avatar="🤖"):
         with st.spinner("🤔 Recherche dans les documents..."):
             # Préparer l'historique pour le LLM (sans les métadonnées)
             chat_history_for_llm = [
@@ -340,42 +266,62 @@ def _process_user_question(
             ]
             
             # Générer la réponse
-            response = llm_handler.generate_response(
-                question=question,
-                chat_history=chat_history_for_llm
-            )
-            
-            # Afficher la réponse
-            st.markdown(response["answer"])
-            
-            # Afficher les sources
-            if response["sources"]:
-                with st.expander("📚 Sources utilisées", expanded=True):
-                    for source in response["sources"]:
-                        st.write(f"- {source}")
+            try:
+                response = llm_handler.generate_response(
+                    question=question,
+                    chat_history=chat_history_for_llm
+                )
                 
-                # Afficher le nombre de chunks utilisés
-                st.caption(f"🔍 {response['relevant_chunks']} chunks pertinents utilisés")
-            
-            # Timestamp
-            response_timestamp = datetime.now().strftime("%H:%M:%S")
-            st.caption(f"🕒 {response_timestamp}")
-    
-    # Ajouter la réponse à l'historique
-    st.session_state.chat_history.append({
-        "role": "assistant",
-        "content": response["answer"],
-        "sources": response["sources"],
-        "timestamp": response_timestamp
-    })
-    st.session_state.message_count += 1
-    st.session_state.conversation_modified = True
-    
-    logger.info(
-        f"💬 Question traitée: '{question[:50]}...' | "
-        f"Réponse: {len(response['answer'])} caractères | "
-        f"Sources: {len(response['sources'])}"
-    )
-    
-    # Sauvegarde automatique après chaque échange
-    _save_current_conversation(conversation_manager)
+                # Afficher la réponse
+                st.markdown(response["answer"])
+                
+                # Afficher les sources
+                if response["sources"]:
+                    st.markdown("---")
+                    st.markdown("**📚 Sources utilisées :**")
+                    
+                    # Afficher sources avec badges
+                    sources_html = "<div style='display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;'>"
+                    for source in response["sources"]:
+                        sources_html += f"""
+                            <span style='background: #DBEAFE; color: #1E40AF; padding: 0.25rem 0.75rem; 
+                                         border-radius: 12px; font-size: 0.85rem; font-weight: 500;'>
+                                📄 {source}
+                            </span>
+                        """
+                    sources_html += "</div>"
+                    st.markdown(sources_html, unsafe_allow_html=True)
+                    
+                    # Afficher le nombre de chunks utilisés
+                    st.caption(f"🔍 {response['relevant_chunks']} chunks pertinents utilisés")
+                
+                # Timestamp
+                response_timestamp = datetime.now().strftime("%H:%M:%S")
+                st.caption(f"🕒 {response_timestamp}")
+                
+                # Ajouter la réponse à l'historique
+                st.session_state.chat_history.append({
+                    "role": "assistant",
+                    "content": response["answer"],
+                    "sources": response["sources"],
+                    "timestamp": response_timestamp
+                })
+                st.session_state.message_count += 1
+                st.session_state.conversation_modified = True
+                
+                logger.info(
+                    f"💬 Question traitée: '{question[:50]}...' | "
+                    f"Réponse: {len(response['answer'])} caractères | "
+                    f"Sources: {len(response['sources'])}"
+                )
+                
+                # Sauvegarde automatique après chaque échange
+                _save_current_conversation(conversation_manager)
+                
+            except Exception as e:
+                logger.error(f"❌ Erreur lors de la génération de la réponse: {e}")
+                st.error(f"❌ Une erreur est survenue lors de la génération de la réponse: {str(e)}")
+                
+                # Retirer la question de l'historique en cas d'erreur
+                st.session_state.chat_history.pop()
+                st.session_state.message_count -= 1
