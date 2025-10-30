@@ -39,7 +39,7 @@ def render_chat_interface(
     """, unsafe_allow_html=True)
     
     # Layout principal: Chat + Info panel
-    col_chat, col_info = st.columns([2, 1])
+    col_chat, col_info = st.columns([4, 1])
     
     with col_chat:
         _render_chat_area(llm_handler, vector_store_manager, conversation_manager)
@@ -83,7 +83,7 @@ def _render_welcome_message():
                 Commencez par poser une question sur vos documents juridiques.
                 Les réponses sont basées exclusivement sur les documents que vous avez uploadés.
             </p>
-            <div style='margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center;'>
+            <div style='margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; color: #D4AF37'>
                 <div style='background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); padding: 1rem 1.5rem; border-radius: 12px; max-width: 200px;'>
                     <div style='font-size: 1.5rem; margin-bottom: 0.5rem;'>🔍</div>
                     <strong>Recherche contextuelle</strong>
@@ -340,13 +340,7 @@ def _render_info_panel(vector_store_manager: VectorStoreManager):
             </div>
             <ul style='list-style: none; padding: 0; margin: 0; color: #4b5563;'>
                 <li style='padding: 0.5rem 0; border-bottom: 1px solid #eee;'>
-                    📊 Types de fichiers:<br>{types_html}
-                </li>
-                <li style='padding: 0.5rem 0; border-bottom: 1px solid #eee;'>
                     🔒 Données sécurisées
-                </li>
-                <li style='padding: 0.5rem 0;'>
-                    ✅ Indexation complète
                 </li>
             </ul>
         </div>

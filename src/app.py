@@ -320,28 +320,60 @@ def _inject_mockup_css():
             padding: 2rem;
         }
         
-        /* ===== HEADER ===== */
+       /* ===== HEADER ===== */
         .main-header {
             background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8c 100%);
             padding: 2rem;
-            border-radius: 12px;
-            margin-bottom: 2rem;
             color: white;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            z-index: 1000;
+            margin: 0;
+            border-radius: 0;
+            margin-left: 0 !important;
         }
-        
+
+        /* Ajuster selon l'état de la sidebar */
+        [data-testid="stSidebar"][aria-expanded="true"] ~ [data-testid="stMain"] .main-header {
+            margin-left: 336px !important;
+            width: calc(100% - 336px) !important;
+        }
+
+        [data-testid="stSidebar"][aria-expanded="false"] ~ [data-testid="stMain"] .main-header {
+            margin-left: 0 !important;
+            width: 100% !important;
+        }
+
         .main-header h1 {
             font-size: 2rem;
             margin-bottom: 0.5rem;
             font-weight: 700;
         }
-        
+
         .main-header p {
             opacity: 0.9;
             font-size: 1rem;
             margin: 0;
         }
-        
+
+        /* Ajouter un padding-top au contenu pour compenser le header fixe */
+        .main .block-container {
+            max-width: 85%;
+            padding: 2rem;
+            padding-top: 150px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-header {
+                margin-left: 0 !important;
+                width: 100% !important;
+            }
+        }
         /* ===== CHAT MESSAGES ===== */
         .message-container {
             display: flex;

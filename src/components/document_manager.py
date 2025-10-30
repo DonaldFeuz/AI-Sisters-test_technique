@@ -42,9 +42,9 @@ def render_document_manager(
     
     # Header principal
     st.markdown("""
-        <div class="main-header">
-            <h1>📁 Gestion des Documents</h1>
-            <p>Uploadez, gérez et vectorisez vos documents juridiques</p>
+        <div class="main-header" style="margin-bottom: 1rem; padding: 1rem;">
+            <h1 style="font-size: 1.5rem; margin-bottom: 0.25rem;">📁 Gestion des Documents</h1>
+            <p style="font-size: 0.85rem; margin: 0;">Uploadez, vos documents juridiques</p>
         </div>
     """, unsafe_allow_html=True)
     
@@ -63,11 +63,6 @@ def render_document_manager(
     st.markdown("### 📋 Documents indexés")
     _render_documents_list(vector_store_manager)
     
-    st.markdown("---")
-    
-    # Pipeline de traitement
-    _render_pipeline_section()
-
 
 def _render_upload_section(
     vector_store_manager: VectorStoreManager,
@@ -111,7 +106,7 @@ def _render_upload_section(
         col1, col2 = st.columns(2)
         
         with col1:
-            if st.button("🚀 Traiter et Vectoriser", type="primary", use_container_width=True):
+            if st.button("🚀 Enregister", type="primary", use_container_width=True):
                 _handle_upload(uploaded_files, vector_store_manager, document_processor)
         
         with col2:
@@ -129,29 +124,30 @@ def _render_stats_card(vector_store_manager: VectorStoreManager):
     size_mb = stats["total_size"] / (1024 * 1024)
     size_str = f"{size_mb:.2f} MB" if size_mb > 1 else f"{stats['total_size'] / 1024:.2f} KB"
     
+    st.markdown("### 📊 Statistiques")
+    
+    # Métrique principale
+    st.metric("Documents actifs", stats['total'])
+    
+    # Espace utilisé
     st.markdown(f"""
-        <div class="stat-card">
-            <h2>📊 Statistiques</h2>
-            <div class="number">{stats['total']}</div>
-            <p style='font-size: 1rem; margin-bottom: 1rem;'>Documents actifs</p>
-            
-            <div style='background: rgba(255,255,255,0.2); padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem;'>
-                <div style='font-size: 0.9rem; opacity: 0.9;'>
-                    💾 Espace utilisé<br>
-                    <strong style='font-size: 1.2rem;'>{size_str}</strong>
-                </div>
-            </div>
-            
-            <hr style='margin: 1rem 0; border: none; border-top: 1px solid rgba(255,255,255,0.3);'>
-            <p style='font-size: 0.9rem; opacity: 0.9;'>
-                ✅ Indexation complète<br>
-                🔒 Données sécurisées<br>
-                ⚡ Prêt pour recherche
-            </p>
+        <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                    padding: 1rem; border-radius: 8px; color: white; margin: 1rem 0;'>
+            <div style='font-size: 0.9rem; opacity: 0.9;'>💾 Espace utilisé</div>
+            <div style='font-size: 1.5rem; font-weight: bold; margin-top: 0.5rem;'>{size_str}</div>
         </div>
     """, unsafe_allow_html=True)
     
-    # Types de documents (si présents)
+    # Statut
+    st.markdown("""
+        <div style='background: #f5f5f5; padding: 1rem; border-radius: 8px; margin: 1rem 0; color: #4b5563;'>
+            <p style='margin: 0.25rem 0;'>✅ Indexation complète</p>
+            <p style='margin: 0.25rem 0;'>🔒 Données sécurisées</p>
+            <p style='margin: 0.25rem 0;'>⚡ Prêt pour recherche</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Types de documents
     if stats["by_type"]:
         with st.expander("📊 Répartition par type"):
             for ext, count in stats["by_type"].items():
@@ -459,51 +455,3 @@ def _delete_all_documents(vector_store_manager: VectorStoreManager):
     except Exception as e:
         logger.error(f"❌ Erreur suppression totale: {e}")
         st.error(f"❌ Erreur: {str(e)}")
-
-
-def _render_pipeline_section():
-    """Section pipeline de traitement (design maquette)"""
-    
-    st.markdown("### ⚙️ Pipeline de traitement")
-    
-    # Responsive: 3 colonnes sur desktop, 1 sur mobile
-    cols = st.columns([1, 1, 1])
-    
-    with cols[0]:
-        st.markdown("""
-            <div class="pipeline-step">
-                <h4>1️⃣ Nettoyage</h4>
-                <ul>
-                    <li>✓ Suppression caractères spéciaux</li>
-                    <li>✓ Normalisation du texte</li>
-                    <li>✓ Extraction contenu pertinent</li>
-                    <li>✓ Détection de l'encodage</li>
-                </ul>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with cols[1]:
-        st.markdown("""
-            <div class="pipeline-step">
-                <h4>2️⃣ Chunking</h4>
-                <ul>
-                    <li>✓ Découpage intelligent</li>
-                    <li>✓ Taille: 500 tokens</li>
-                    <li>✓ Overlap: 50 tokens</li>
-                    <li>✓ Préservation du contexte</li>
-                </ul>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with cols[2]:
-        st.markdown("""
-            <div class="pipeline-step">
-                <h4>3️⃣ Vectorisation</h4>
-                <ul>
-                    <li>✓ Embeddings: text-ada-002</li>
-                    <li>✓ Base: ChromaDB</li>
-                    <li>✓ Indexation automatique</li>
-                    <li>✓ Recherche sémantique</li>
-                </ul>
-            </div>
-        """, unsafe_allow_html=True)
