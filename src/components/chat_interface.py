@@ -26,20 +26,11 @@ def render_chat_interface(
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
     
-    # Initialiser le feedback state
     if "feedback" not in st.session_state:
         st.session_state.feedback = {}
     
-    # Header principal
-    st.markdown("""
-    <div class="main-header" style="margin-bottom: 1rem; padding: 1rem;">
-        <h1 style="font-size: 1.5rem; margin-bottom: 0.25rem;">💬 Assistant Juridique IA</h1>
-        <p style="font-size: 0.85rem; margin: 0;">Posez vos questions sur les documents du cabinet en toute confidentialité</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
     # Layout principal: Chat + Info panel
-    col_chat, col_info = st.columns([4, 1])
+    col_chat, col_info = st.columns([3, 1])
     
     with col_chat:
         _render_chat_area(llm_handler, vector_store_manager, conversation_manager)
@@ -141,7 +132,7 @@ def _render_messages(messages: List[Dict]):
                 </div>
             """, unsafe_allow_html=True)
             
-            # NOUVEAU : Boutons de feedback
+            # Boutons de feedback
             _render_feedback_buttons(msg_id, idx)
 
 
@@ -346,7 +337,7 @@ def _render_info_panel(vector_store_manager: VectorStoreManager):
         </div>
     """, unsafe_allow_html=True)
     
-    # NOUVEAU : Tips pour meilleures questions
+    # Tips pour meilleures questions
     with st.expander("💡 Conseils pour de meilleures réponses"):
         st.markdown("""
         **Posez des questions:**

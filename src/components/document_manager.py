@@ -40,14 +40,7 @@ def render_document_manager(
 ):
     """Render la page de gestion des documents (Page 2) avec design maquette"""
     
-    # Header principal
-    st.markdown("""
-        <div class="main-header" style="margin-bottom: 1rem; padding: 1rem;">
-            <h1 style="font-size: 1.5rem; margin-bottom: 0.25rem;">📁 Gestion des Documents</h1>
-            <p style="font-size: 0.85rem; margin: 0;">Uploadez, vos documents juridiques</p>
-        </div>
-    """, unsafe_allow_html=True)
-    
+   
     # Section Upload + Stats (responsive)
     col_upload, col_stats = st.columns([2, 1])
     

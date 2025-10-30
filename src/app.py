@@ -48,8 +48,8 @@ def main():
         initial_sidebar_state="expanded"
     )
     
-    # CSS de la maquette AMÉLIORÉ avec responsive
-    _inject_mockup_css()
+    # CSS optimisé
+    _inject_optimized_css()
     
     # Initialiser les composants (avec cache)
     vector_store_manager = _get_vector_store_manager()
@@ -60,6 +60,35 @@ def main():
     # Initialiser la page
     if "page" not in st.session_state:
         st.session_state.page = "chat"
+    
+    # Contenu du header selon la page
+    if st.session_state.page == "chat":
+        page_title = "💬 Assistant Juridique IA"
+        page_subtitle = "Posez vos questions sur les documents du cabinet en toute confidentialité"
+    else:
+        page_title = "📁 Gestion des Documents"
+        page_subtitle = "Uploadez, gérez et vectorisez vos documents juridiques"
+    
+    # ========== HEADER FIXE GLOBAL ==========
+    st.markdown(f"""
+    <div class="global-header">
+        <div class="logo-section">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div style="font-size: 2rem;">⚖️</div>
+                <div>
+                    <div style="font-size: 1.2rem; font-weight: 700; margin: 0;">Cabinet Parenti</div>
+                    <div style="font-size: 0.8rem; opacity: 0.8; margin: 0;">Assistant IA Juridique</div>
+                </div>
+            </div>
+        </div>
+        <div class="content-section">
+            <div style="width: 100%;">
+                <h1 style="font-size: 1.5rem; margin: 0 0 0.25rem 0;">{page_title}</h1>
+                <p style="font-size: 0.85rem; margin: 0; opacity: 0.9;">{page_subtitle}</p>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     
     # ========== SIDEBAR ==========
     with st.sidebar:
@@ -81,19 +110,11 @@ def main():
 
 
 def _render_sidebar(conversation_manager: ConversationManager, vector_store_manager: VectorStoreManager):
-    """Render la sidebar avec le design de la maquette"""
+    """Render la sidebar avec navigation et contenu contextuel"""
     
-    # Header de la sidebar
-    st.markdown("""
-        <div class="sidebar-header">
-            <h2 style='color: white; margin: 0; font-size: 1.5rem;'>⚖️ Cabinet Parenti</h2>
-            <p style='color: rgba(255,255,255,0.8); font-size: 0.85rem; margin: 0.5rem 0 0 0;'>Assistant IA Juridique</p>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown("<div style='margin: 1rem 0;'></div>", unsafe_allow_html=True)
     
-    st.markdown("<div style='margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
-    
-    # BOUTONS EN COLONNE (FIX)
+    # ========== NAVIGATION ==========
     if st.button("💬 Interface Chat", key="nav_chat", use_container_width=True,
                  type="primary" if st.session_state.page == "chat" else "secondary"):
         st.session_state.page = "chat"
@@ -107,7 +128,7 @@ def _render_sidebar(conversation_manager: ConversationManager, vector_store_mana
     st.markdown("<div style='margin: 1.5rem 0; border-top: 1px solid rgba(255,255,255,0.2);'></div>", 
                 unsafe_allow_html=True)
     
-    # Contenu spécifique selon la page
+    # ========== CONTENU CONTEXTUEL ==========
     if st.session_state.page == "chat":
         _render_chat_sidebar(conversation_manager)
     else:
@@ -136,11 +157,9 @@ def _render_chat_sidebar(conversation_manager: ConversationManager):
     st.markdown("<h4 style='color: rgba(255,255,255,0.9); font-size: 0.85rem; margin: 1rem 0 0.5rem 0;'>Conversations récentes</h4>", 
                 unsafe_allow_html=True)
     
-    # Historique avec suppression (FIX)
+    # Historique des conversations
     conversations = conversation_manager.list_conversations()
     
-   # Dans la fonction _render_chat_sidebar, remplacer la section conversations :
-
     if not conversations:
         st.markdown("<p style='color: rgba(255,255,255,0.6); font-size: 0.85rem;'>Aucune conversation</p>", 
                     unsafe_allow_html=True)
@@ -167,21 +186,9 @@ def _render_chat_sidebar(conversation_manager: ConversationManager):
                         st.success(f"✅ Conversation supprimée")
                         st.rerun()
 
-@st.cache_data(ttl=60)
-def get_conversation_preview(conversation_id: str, conversation_manager: ConversationManager) -> dict:
-    """Cache la prévisualisation d'une conversation (1 minute)"""
-    conv_data = conversation_manager.load_conversation(conversation_id)
-    if conv_data:
-        return {
-            "id": conversation_id,
-            "title": conv_data.get("title", "Sans titre"),
-            "message_count": len(conv_data.get("messages", [])),
-            "last_update": conv_data.get("updated_at", "")
-        }
-    return None
 
 def _render_documents_sidebar(vector_store_manager: VectorStoreManager):
-    """Sidebar pour la page Documents avec stats en temps réel"""
+    """Sidebar pour la page Documents avec statistiques"""
     
     st.markdown("<h3 style='color: white; font-size: 0.95rem; margin-bottom: 1rem;'>📊 Statistiques</h3>", 
                 unsafe_allow_html=True)
@@ -196,7 +203,7 @@ def _render_documents_sidebar(vector_store_manager: VectorStoreManager):
         ext = Path(source).suffix.lower()
         doc_types[ext] = doc_types.get(ext, 0) + 1
     
-    # Afficher les métriques
+    # Afficher les métriques principales
     st.markdown(f"""
         <div style='background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; color: white;'>
             <div style='margin-bottom: 0.75rem;'>
@@ -239,6 +246,7 @@ def _load_conversation(conversation_manager: ConversationManager, conversation_i
         st.session_state.chat_history = conversation_data["messages"]
         st.session_state.message_count = len(conversation_data["messages"])
         logger.info(f"📂 Conversation chargée: {conversation_id}")
+        st.rerun()
 
 
 @st.cache_resource
@@ -269,8 +277,8 @@ def _get_conversation_manager() -> ConversationManager:
     return ConversationManager()
 
 
-def _inject_mockup_css():
-    """CSS exact de la maquette AVEC RESPONSIVE DESIGN"""
+def _inject_optimized_css():
+    """CSS optimisé et nettoyé - utilise le système natif de Streamlit"""
     st.markdown("""
         <style>
         /* Import Google Fonts */
@@ -281,21 +289,81 @@ def _inject_mockup_css():
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
         
+        /* ===== HEADER GLOBAL FIXE ===== */
+        .global-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8c 100%);
+            color: white;
+            z-index: 1002;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+        }
+
+        .global-header .logo-section {
+            width: 336px;
+            min-width: 280px;
+            max-width: 336px;
+            padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, #1a2f4a 0%, #234567 100%);
+            border-right: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .global-header .content-section {
+            flex: 1;
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+        }
+
         /* ===== SIDEBAR ===== */
         [data-testid="stSidebar"] {
             background: linear-gradient(180deg, #1e3a5f 0%, #2d5a8c 100%);
+            padding-top: 1px !important;
+            top: 125px !important;  /* 👈 AJOUTE CETTE LIGNE - position Y fixe depuis le haut */
+            height: calc(100vh - 80px) !important; 
         }
-        
+
+        [data-testid="stSidebar"] > div:first-child {
+            padding-top: 1rem !important;
+        }
+
         [data-testid="stSidebar"] * {
             color: white !important;
         }
-        
+
+        /* Bouton collapse natif Streamlit - Style personnalisé */
+        [data-testid="stSidebarCollapsedControl"] {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8c 100%) !important;
+            color: white !important;
+            border-radius: 0 8px 8px 0 !important;
+            top: 100px !important;
+            z-index: 1003 !important;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.2) !important;
+            transition: all 0.3s ease !important;
+        }
+
+        [data-testid="stSidebarCollapsedControl"]:hover {
+            background: linear-gradient(135deg, #2d5a8c 0%, #3a6ba5 100%) !important;
+            transform: translateX(3px) !important;
+        }
+
+        [data-testid="stSidebarCollapsedControl"] svg {
+            color: #4FC3F7 !important;
+            width: 24px !important;
+            height: 24px !important;
+        }
+
+        /* Boutons de navigation sidebar */
         [data-testid="stSidebar"] .stButton button {
             background: rgba(255,255,255,0.1);
             border: none;
             color: white !important;
             transition: all 0.3s;
             font-weight: 500;
+            border-radius: 8px;
         }
         
         [data-testid="stSidebar"] .stButton button:hover {
@@ -318,62 +386,9 @@ def _inject_mockup_css():
         .main .block-container {
             max-width: 85%;
             padding: 2rem;
+            padding-top: 110px;
         }
         
-       /* ===== HEADER ===== */
-        .main-header {
-            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8c 100%);
-            padding: 2rem;
-            color: white;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            width: 100%;
-            z-index: 1000;
-            margin: 0;
-            border-radius: 0;
-            margin-left: 0 !important;
-        }
-
-        /* Ajuster selon l'état de la sidebar */
-        [data-testid="stSidebar"][aria-expanded="true"] ~ [data-testid="stMain"] .main-header {
-            margin-left: 336px !important;
-            width: calc(100% - 336px) !important;
-        }
-
-        [data-testid="stSidebar"][aria-expanded="false"] ~ [data-testid="stMain"] .main-header {
-            margin-left: 0 !important;
-            width: 100% !important;
-        }
-
-        .main-header h1 {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-            font-weight: 700;
-        }
-
-        .main-header p {
-            opacity: 0.9;
-            font-size: 1rem;
-            margin: 0;
-        }
-
-        /* Ajouter un padding-top au contenu pour compenser le header fixe */
-        .main .block-container {
-            max-width: 85%;
-            padding: 2rem;
-            padding-top: 150px;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .main-header {
-                margin-left: 0 !important;
-                width: 100% !important;
-            }
-        }
         /* ===== CHAT MESSAGES ===== */
         .message-container {
             display: flex;
@@ -646,17 +661,24 @@ def _inject_mockup_css():
         
         /* ===== RESPONSIVE DESIGN ===== */
         @media (max-width: 768px) {
+            .global-header .logo-section {
+                width: 200px;
+                min-width: 180px;
+                padding: 0.75rem 1rem;
+            }
+            
+            .global-header .logo-section > div > div:first-child {
+                font-size: 1.5rem;
+            }
+            
+            .global-header .content-section {
+                padding: 0.75rem 1rem;
+            }
+            
             .main .block-container {
                 max-width: 100%;
                 padding: 1rem;
-            }
-            
-            .main-header {
-                padding: 1.5rem;
-            }
-            
-            .main-header h1 {
-                font-size: 1.5rem;
+                padding-top: 100px;
             }
             
             .message-bubble {
@@ -687,8 +709,17 @@ def _inject_mockup_css():
         }
         
         @media (max-width: 480px) {
-            .main-header h1 {
-                font-size: 1.25rem;
+            .global-header .logo-section {
+                width: 150px;
+                min-width: 150px;
+            }
+            
+            .global-header .logo-section > div > div {
+                font-size: 0.9rem !important;
+            }
+            
+            .global-header .content-section h1 {
+                font-size: 1.1rem !important;
             }
             
             .message-bubble {
@@ -701,7 +732,7 @@ def _inject_mockup_css():
             }
         }
         
-        /* ===== HIDE STREAMLIT ELEMENTS ===== */
+        /* ===== HIDE STREAMLIT DEFAULT ELEMENTS ===== */
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
         header {visibility: hidden;}
