@@ -42,8 +42,8 @@ def main():
     
     # Configuration de la page
     st.set_page_config(
-        page_title="Cabinet Parenti - Assistant Juridique IA",
-        page_icon="⚖️",
+        page_title=APP_TITLE,
+        page_icon=APP_ICON,
         layout="wide",
         initial_sidebar_state="expanded"
     )
@@ -87,17 +87,11 @@ def _render_sidebar(conversation_manager: ConversationManager, vector_store_mana
     st.markdown("""
         <div class="sidebar-header">
             <h2 style='color: white; margin: 0; font-size: 1.5rem;'>⚖️ Cabinet Parenti</h2>
-            <p style='color: rgba(255,255,255,0.8); margin: 0.5rem 0 0 0; font-size: 0.85rem;'>
-                Assistant Juridique IA
-            </p>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown("<div style='margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
     
-    # Navigation
-    st.markdown("<h3 style='color: white; font-size: 0.95rem; margin-bottom: 1rem;'>📍 Navigation</h3>", 
-                unsafe_allow_html=True)
     
     # Bouton Chat
     if st.button("💬 Interface Chat", key="nav_chat", use_container_width=True,
@@ -271,6 +265,54 @@ def _inject_mockup_css():
         /* ===== MAIN CONTENT ===== */
         .main {
             background: #fafafa;
+             max-width: 1400px;
+             margin: 0 auto;
+        }
+        
+        /* Fixer la hauteur de la page sans scroll */
+        .main .block-container {
+            max-height: 100vh;
+            overflow: hidden;
+            max-width: 70%;
+            padding-left: 2rem;
+            padding-right: 2rem;
+        }
+
+        /* Fixer le header */
+        .main-header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        /* Ajuster la zone de chat pour remplir l'espace disponible */
+        .message-container {
+            max-height: calc(100vh - 400px);
+            overflow-y: auto;
+        }
+        
+        /* Zone de saisie style ChatGPT */
+        .chat-input-container {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s;
+        }
+
+        .chat-input-container:focus-within {
+            border-color: #3b82f6;
+            box-shadow: 0 4px 16px rgba(59,130,246,0.2);
+        }
+
+        /* Supprimer les styles par défaut de Streamlit */
+        [data-testid="stForm"] {
+            border: none !important;
+            padding: 0 !important;
+        }
+
+        .stTextInput > div > div {
+            border: none !important;
         }
         
         /* ===== HEADER ===== */
@@ -371,6 +413,14 @@ def _inject_mockup_css():
             border-radius: 8px;
             margin-bottom: 1rem;
             border-left: 4px solid #1976d2;
+        }
+        
+        .info-box strong {
+            color: #1e3a5f !important;
+        }
+
+        .info-box small {
+            color: #4b5563 !important;
         }
         
         /* ===== DOCUMENT CARDS ===== */

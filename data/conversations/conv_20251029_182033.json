@@ -2,8 +2,8 @@
   "id": "conv_20251029_182033",
   "title": "tu as le dossier de donald ?",
   "created_at": "20251029 182033",
-  "updated_at": "2025-10-29 18:27:48",
-  "message_count": 2,
+  "updated_at": "2025-10-29 23:23:07",
+  "message_count": 6,
   "messages": [
     {
       "role": "user",
@@ -14,6 +14,32 @@
       "role": "assistant",
       "content": "Oui, j'ai accès à certaines informations concernant Donald FEUZING NTEMMA à partir des documents disponibles. Il s'agit notamment de son contrat de travail avec la société My Kiwi SAS, où il est engagé en tant qu'Ingénieur d'Étude et Développement. Le contrat est un contrat de travail à durée indéterminée de chantier. Donald FEUZING NTEMMA est de nationalité camerounaise, né le 5 août 2000 à Dschang, Cameroun, et réside au 28 bis Rue Lucien Royer, 95340, Persan. \n\nSources : [Document 1 - contratDF.txt, Chunk: 0], [Document 2 - contratDF.txt, Chunk: 3], [Document 3 - contratDF.txt, Chunk: 2]",
       "timestamp": "18:27",
+      "sources": [
+        "contratDF.txt"
+      ]
+    },
+    {
+      "role": "user",
+      "content": "test",
+      "timestamp": "22:47"
+    },
+    {
+      "role": "assistant",
+      "content": "Je ne trouve pas d'information pertinente dans les documents disponibles pour répondre à la question \"test\". Si vous avez une question spécifique concernant le contrat ou un autre sujet juridique, n'hésitez pas à la formuler clairement. \n\nSources : [Documents 1 à 5 - contratDF.txt]",
+      "timestamp": "22:47",
+      "sources": [
+        "contratDF.txt"
+      ]
+    },
+    {
+      "role": "user",
+      "content": "quel",
+      "timestamp": "22:54"
+    },
+    {
+      "role": "assistant",
+      "content": "Je ne trouve pas d'information pertinente dans les documents disponibles pour répondre à la question \"quel\". Si vous avez une question spécifique concernant le contrat ou un autre sujet juridique, n'hésitez pas à la formuler clairement.\n\nSources : [Documents 1 à 5 - contratDF.txt]",
+      "timestamp": "22:54",
       "sources": [
         "contratDF.txt"
       ]

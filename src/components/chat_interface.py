@@ -28,10 +28,10 @@ def render_chat_interface(
     
     # Header principal
     st.markdown("""
-        <div class="main-header">
-            <h1>💬 Assistant Juridique IA</h1>
-            <p>Posez vos questions sur les documents du cabinet en toute confidentialité</p>
-        </div>
+    <div class="main-header" style="margin-bottom: 1rem; padding: 1rem;">
+        <h1 style="font-size: 1.5rem; margin-bottom: 0.25rem;">💬 Assistant Juridique IA</h1>
+        <p style="font-size: 0.85rem; margin: 0;">Posez vos questions sur les documents du cabinet en toute confidentialité</p>
+    </div>
     """, unsafe_allow_html=True)
     
     # Layout principal: Chat + Info panel
@@ -54,7 +54,7 @@ def _render_chat_area(
     st.markdown("### 🗨️ Conversation")
     
     # Conteneur de messages avec hauteur fixe
-    chat_container = st.container(height=450)
+    chat_container = st.container(height=500)
     
     with chat_container:
         if not st.session_state.chat_history:
@@ -124,7 +124,7 @@ def _render_input_area(
     vector_store_manager: VectorStoreManager,
     conversation_manager: ConversationManager
 ):
-    """Zone de saisie avec design maquette"""
+    """Zone de saisie style ChatGPT"""
     
     # Vérifier si des documents sont chargés
     doc_count = vector_store_manager.get_document_count()
@@ -133,31 +133,55 @@ def _render_input_area(
         st.warning("⚠️ Aucun document chargé. Allez dans 'Gestion Documents' pour uploader des fichiers.", icon="⚠️")
         return
     
-    # Input
-    user_input = st.text_area(
-        "Votre question :",
-        placeholder="Ex: Quelles sont les clauses essentielles d'un contrat de prestation de service ?",
-        height=100,
-        key="user_input"
-    )
+    # CSS pour la zone de saisie style ChatGPT
+    st.markdown("""
+        <style>
+        .chat-input-container {
+            position: fixed;
+            bottom: 20px;
+            left: 300px;
+            right: 20px;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .stTextInput input {
+            border: none !important;
+            box-shadow: none !important;
+            padding: 8px 0 !important;
+        }
+        
+        .stTextInput input:focus {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
     
-    # Boutons
-    col_send, col_clear = st.columns([3, 1])
+   # Créer un formulaire pour la touche Entrée
+    with st.form(key="chat_form", clear_on_submit=True):
+        col1, col2 = st.columns([95, 5])
     
-    with col_send:
-        send_button = st.button("📤 Envoyer", type="primary", use_container_width=True)
+        with col1:
+            user_input = st.text_input(
+                "Message",
+                placeholder="Posez votre question juridique...",
+                key="user_input_field",
+                label_visibility="collapsed"
+            )
+        
+        with col2:
+            send_button = st.form_submit_button("➤", use_container_width=True)
     
-    with col_clear:
-        clear_button = st.button("🗑️ Effacer", use_container_width=True)
-    
-    # Traiter l'envoi
+    # Traiter l'envoi (Entrée ou bouton)
     if send_button and user_input.strip():
         _handle_user_message(user_input, llm_handler, conversation_manager)
-        st.rerun()
-    
-    # Traiter l'effacement
-    if clear_button:
-        st.session_state.chat_history = []
         st.rerun()
 
 
@@ -234,7 +258,7 @@ def _render_info_panel(vector_store_manager: VectorStoreManager):
     st.markdown(f"""
         <div class="info-panel">
             <h3>📚 Documents sources</h3>
-            <ul style='list-style: none; padding: 0; margin: 0;'>
+            <ul style='list-style: none; padding: 0; margin: 0; color: #4b5563;'>
                 <li style='padding: 0.5rem 0; border-bottom: 1px solid #eee;'>
                     ✅ {doc_count} documents actifs
                 </li>
@@ -247,34 +271,3 @@ def _render_info_panel(vector_store_manager: VectorStoreManager):
             </ul>
         </div>
     """, unsafe_allow_html=True)
-    
-    # Configuration
-    st.markdown("""
-        <div class="info-panel">
-            <h3>⚡ Configuration</h3>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    model_choice = st.selectbox(
-        "Modèle IA",
-        ["GPT-4", "Claude Sonnet", "Mistral Large"],
-        index=1,
-        key="model_choice"
-    )
-    
-    num_sources = st.slider(
-        "Nombre de sources",
-        min_value=1,
-        max_value=10,
-        value=3,
-        key="num_sources"
-    )
-    
-    temperature = st.slider(
-        "Température",
-        min_value=0.0,
-        max_value=1.0,
-        value=0.3,
-        step=0.1,
-        key="temperature"
-    )
