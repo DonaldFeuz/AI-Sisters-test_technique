@@ -45,7 +45,7 @@ def main():
         page_title=APP_TITLE,
         page_icon=APP_ICON,
         layout="wide",
-        initial_sidebar_state="expanded"
+         initial_sidebar_state="expanded"
     )
     
     # CSS optimisé
@@ -60,6 +60,10 @@ def main():
     # Initialiser la page
     if "page" not in st.session_state:
         st.session_state.page = "chat"
+    
+    # Initialiser l'état de la sidebar custom
+    if "sidebar_open" not in st.session_state:
+        st.session_state.sidebar_open = True
     
     # Contenu du header selon la page
     if st.session_state.page == "chat":
@@ -90,9 +94,8 @@ def main():
     </div>
     """, unsafe_allow_html=True)
     
-    # ========== SIDEBAR ==========
-    with st.sidebar:
-        _render_sidebar(conversation_manager, vector_store_manager)
+    # ========== SIDEBAR CUSTOM ==========
+    _render_sidebar_toggle(conversation_manager, vector_store_manager)
     
     # ========== CONTENU PRINCIPAL ==========
     if st.session_state.page == "chat":
@@ -109,10 +112,37 @@ def main():
     """, unsafe_allow_html=True)
 
 
-def _render_sidebar(conversation_manager: ConversationManager, vector_store_manager: VectorStoreManager):
-    """Render la sidebar avec navigation et contenu contextuel"""
+def _render_sidebar_toggle(conversation_manager: ConversationManager, vector_store_manager: VectorStoreManager):
+    """Gestion unifiée du toggle de la sidebar"""
     
-    st.markdown("<div style='margin: 1rem 0;'></div>", unsafe_allow_html=True)
+    if st.session_state.sidebar_open:
+        # SIDEBAR OUVERTE
+        with st.sidebar:
+            # Bouton fermer en haut
+            col1, col2 = st.columns([5, 1])
+            with col2:
+                if st.button("✖", key="close_sidebar", help="Fermer le menu"):
+                    st.session_state.sidebar_open = False
+                    st.rerun()
+            
+            st.markdown("<div style='margin: 1rem 0;'></div>", unsafe_allow_html=True)
+            
+            # Contenu de la sidebar
+            _render_sidebar_content(conversation_manager, vector_store_manager)
+    
+    else:
+        # MINI SIDEBAR (60px)
+        _inject_mini_sidebar_css()
+        
+        with st.sidebar:
+            st.markdown("<div style='margin: 1rem 0;'></div>", unsafe_allow_html=True)
+            if st.button("☰", key="open_sidebar", help="Ouvrir le menu", use_container_width=True):
+                st.session_state.sidebar_open = True
+                st.rerun()
+
+
+def _render_sidebar_content(conversation_manager: ConversationManager, vector_store_manager: VectorStoreManager):
+    """Contenu complet de la sidebar"""
     
     # ========== NAVIGATION ==========
     if st.button("💬 Interface Chat", key="nav_chat", use_container_width=True,
@@ -277,8 +307,23 @@ def _get_conversation_manager() -> ConversationManager:
     return ConversationManager()
 
 
+def _inject_mini_sidebar_css():
+    """CSS pour la mini sidebar (60px)"""
+    st.markdown("""
+        <style>
+        section[data-testid="stSidebar"] {
+            width: 60px !important;
+            min-width: 60px !important;
+        }
+        section[data-testid="stSidebar"] > div:first-child {
+            width: 60px !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+
 def _inject_optimized_css():
-    """CSS optimisé et nettoyé - utilise le système natif de Streamlit"""
+    """CSS optimisé avec contrôle total de la sidebar"""
     st.markdown("""
         <style>
         /* Import Google Fonts */
@@ -287,6 +332,26 @@ def _inject_optimized_css():
         /* ===== GLOBAL ===== */
         * {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        /* ===== CACHER TOUS LES BOUTONS NATIFS STREAMLIT ===== */
+        [data-testid="stSidebarCollapsedControl"],
+        [data-testid="collapsedControl"],
+        section[data-testid="stSidebar"] button[kind="header"],
+        section[data-testid="stSidebar"] > div > button[kind="header"],
+        [data-testid="stSidebarNav"] + div button[aria-label],
+        section[data-testid="stSidebar"] [data-testid="baseButton-header"],
+        section[data-testid="stSidebar"] [data-testid="baseButton-headerNoPadding"],
+        section[data-testid="stSidebar"] button[aria-label="Close sidebar"] {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
+        /* Forcer le masquage du conteneur du bouton > */
+        section[data-testid="stSidebar"] > div:first-child > div:first-child > button {
+            display: none !important;
         }
         
         /* ===== HEADER GLOBAL FIXE ===== */
@@ -322,8 +387,7 @@ def _inject_optimized_css():
         [data-testid="stSidebar"] {
             background: linear-gradient(180deg, #1e3a5f 0%, #2d5a8c 100%);
             padding-top: 1px !important;
-            top: 125px !important;  /* 👈 AJOUTE CETTE LIGNE - position Y fixe depuis le haut */
-            height: calc(100vh - 80px) !important; 
+            top: 125px !important;
         }
 
         [data-testid="stSidebar"] > div:first-child {
@@ -332,28 +396,6 @@ def _inject_optimized_css():
 
         [data-testid="stSidebar"] * {
             color: white !important;
-        }
-
-        /* Bouton collapse natif Streamlit - Style personnalisé */
-        [data-testid="stSidebarCollapsedControl"] {
-            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8c 100%) !important;
-            color: white !important;
-            border-radius: 0 8px 8px 0 !important;
-            top: 100px !important;
-            z-index: 1003 !important;
-            box-shadow: 2px 2px 8px rgba(0,0,0,0.2) !important;
-            transition: all 0.3s ease !important;
-        }
-
-        [data-testid="stSidebarCollapsedControl"]:hover {
-            background: linear-gradient(135deg, #2d5a8c 0%, #3a6ba5 100%) !important;
-            transform: translateX(3px) !important;
-        }
-
-        [data-testid="stSidebarCollapsedControl"] svg {
-            color: #4FC3F7 !important;
-            width: 24px !important;
-            height: 24px !important;
         }
 
         /* Boutons de navigation sidebar */
@@ -374,6 +416,43 @@ def _inject_optimized_css():
         [data-testid="stSidebar"] .stButton button[kind="primary"] {
             background: rgba(255,255,255,0.25);
             border-left: 4px solid #4CAF50;
+        }
+        
+        /* Bouton close (✖) */
+        [data-testid="stSidebar"] button[data-key="close_sidebar"] {
+            background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%) !important;
+            color: white !important;
+            border-radius: 8px !important;
+            font-size: 1.2rem !important;
+            font-weight: bold !important;
+            padding: 0.5rem !important;
+            transition: all 0.3s ease !important;
+            box-shadow: 0 2px 8px rgba(211, 47, 47, 0.3) !important;
+        }
+        
+        [data-testid="stSidebar"] button[data-key="close_sidebar"]:hover {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%) !important;
+            transform: scale(1.05) !important;
+        }
+        
+        /* Bouton open (☰) dans mini sidebar */
+        [data-testid="stSidebar"] button[data-key="open_sidebar"] {
+            background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%) !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 8px !important;
+            font-size: 1.5rem !important;
+            font-weight: bold !important;
+            padding: 0.75rem 0.5rem !important;
+            cursor: pointer !important;
+            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3) !important;
+            transition: all 0.3s ease !important;
+        }
+        
+        [data-testid="stSidebar"] button[data-key="open_sidebar"]:hover {
+            background: linear-gradient(135deg, #2196F3 0%, #1976d2 100%) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.4) !important;
         }
         
         /* ===== MAIN CONTENT ===== */
@@ -736,6 +815,63 @@ def _inject_optimized_css():
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
         header {visibility: hidden;}
+        
+        /* Cacher le bouton collapse par défaut de la sidebar ">" */
+        [data-testid="collapsedControl"] {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+        
+        [data-testid="collapsedControl"]:hover {
+            display: none !important;
+            visibility: hidden !important;
+        }
+        
+        button[kind="header"] {
+            display: none !important;
+            visibility: hidden !important;
+        }
+        
+        [data-testid="stSidebarNav"] {
+            display: none !important;
+            visibility: hidden !important;
+        }
+        
+        /* Forcer le masquage du chevron même au hover */
+        section[data-testid="stSidebar"] > div:first-child > button {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+        }
+        
+        /* Alternative: cibler directement l'élément SVG du chevron */
+        [data-testid="stSidebar"] svg[data-testid="stSidebarNavSeparator"] {
+            display: none !important;
+        }
+        
+        /* Masquer TOUS les éléments de contrôle de la sidebar */
+        [data-testid="stSidebar"] [data-testid="baseButton-header"],
+        [data-testid="stSidebar"] [data-testid="baseButton-headerNoPadding"],
+        [data-testid="stSidebar"] button[aria-label*="collapse"],
+        [data-testid="stSidebar"] button[aria-label*="Collapse"] {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            width: 0 !important;
+            height: 0 !important;
+            pointer-events: none !important;
+        }
+        
+        /* Masquer le container du bouton de collapse */
+        [data-testid="stSidebar"] > div:first-child {
+            padding-top: 0 !important;
+        }
+        
+        [data-testid="stSidebar"] > div:first-child > div:first-child {
+            display: none !important;
+        }
         
         /* ===== TOAST NOTIFICATIONS ===== */
         .stToast {
