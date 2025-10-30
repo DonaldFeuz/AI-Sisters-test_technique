@@ -1,6 +1,7 @@
 """
-Interface de chat avec design de la maquette - VERSION AMÉLIORÉE
+Interface de chat avec design de la maquette - VERSION CORRIGÉE v3
 Cabinet Parenti - Assistant Juridique IA
+Scroll automatique UNIQUEMENT dans le conteneur de chat
 """
 import streamlit as st
 from typing import Dict, List
@@ -56,6 +57,8 @@ def _render_chat_area(
             _render_welcome_message()
         else:
             _render_messages(st.session_state.chat_history)
+            # Ajouter un élément vide à la toute fin pour forcer le scroll
+            st.markdown('<div id="chat-bottom-anchor" style="height: 1px;"></div>', unsafe_allow_html=True)
     
     # Espaceur
     st.markdown("<div style='margin-top: 1rem;'></div>", unsafe_allow_html=True)
@@ -102,11 +105,13 @@ def _render_messages(messages: List[Dict]):
         content = msg["content"]
         timestamp = msg.get("timestamp", "")
         msg_id = msg.get("id", f"{role}_{idx}")
+        is_last = (idx == len(messages) - 1)
+        last_msg_id = 'id="last-message"' if is_last else ''
         
         if role == "user":
             # Message utilisateur (à droite, bleu)
             st.markdown(f"""
-                <div class="message-container user-message">
+                <div class="message-container user-message" {last_msg_id}>
                     <div class="message-bubble user-bubble">
                         <div class="message-header">👤 Vous</div>
                         <div class="message-content">{content}</div>
@@ -123,7 +128,7 @@ def _render_messages(messages: List[Dict]):
                 sources_html += "<br>".join([f"<span style='font-size: 0.85rem;'>• {s}</span>" for s in sources])
             
             st.markdown(f"""
-                <div class="message-container assistant-message">
+                <div class="message-container assistant-message" {last_msg_id}>
                     <div class="message-bubble assistant-bubble">
                         <div class="message-header">🤖 Assistant</div>
                         <div class="message-content">{content}{sources_html}</div>
@@ -134,6 +139,90 @@ def _render_messages(messages: List[Dict]):
             
             # Boutons de feedback
             _render_feedback_buttons(msg_id, idx)
+    
+    # Script CORRIGÉ - Scroll UNIQUEMENT le conteneur de chat (pas toute la page)
+    st.components.v1.html("""
+        <script>
+        (function() {
+            function scrollChatToBottom() {
+                try {
+                    const parentDoc = window.parent.document;
+                    
+                    // Trouver l'ancre de fin du chat
+                    const anchor = parentDoc.getElementById('chat-bottom-anchor');
+                    if (!anchor) {
+                        console.log('Ancre non trouvée');
+                        return;
+                    }
+                    
+                    // Chercher le conteneur scrollable parent (le conteneur avec height=450)
+                    let scrollContainer = anchor.parentElement;
+                    let found = false;
+                    
+                    // Remonter dans le DOM pour trouver le bon conteneur
+                    while (scrollContainer && scrollContainer !== parentDoc.body) {
+                        const hasScroll = scrollContainer.scrollHeight > scrollContainer.clientHeight;
+                        const hasOverflow = window.getComputedStyle(scrollContainer).overflowY !== 'visible';
+                        
+                        // C'est le bon conteneur si il a du scroll
+                        if (hasScroll && hasOverflow) {
+                            scrollContainer.scrollTop = scrollContainer.scrollHeight;
+                            found = true;
+                            break;
+                        }
+                        
+                        scrollContainer = scrollContainer.parentElement;
+                    }
+                    
+                    if (!found) {
+                        console.log('Conteneur scrollable non trouvé');
+                    }
+                    
+                } catch(e) {
+                    console.log('Erreur scroll:', e);
+                }
+            }
+            
+            // Exécuter plusieurs fois pour s'assurer que ça fonctionne
+            scrollChatToBottom();
+            setTimeout(scrollChatToBottom, 100);
+            setTimeout(scrollChatToBottom, 300);
+            setTimeout(scrollChatToBottom, 600);
+            setTimeout(scrollChatToBottom, 1000);
+            
+            // Observer uniquement les changements dans la zone de chat
+            try {
+                const parentDoc = window.parent.document;
+                const anchor = parentDoc.getElementById('chat-bottom-anchor');
+                
+                if (anchor && anchor.parentElement) {
+                    const observer = new MutationObserver(() => {
+                        setTimeout(scrollChatToBottom, 100);
+                    });
+                    
+                    // Observer uniquement le conteneur parent de l'ancre
+                    let observeTarget = anchor.parentElement;
+                    while (observeTarget && observeTarget.scrollHeight <= observeTarget.clientHeight) {
+                        observeTarget = observeTarget.parentElement;
+                        if (observeTarget === parentDoc.body) break;
+                    }
+                    
+                    if (observeTarget && observeTarget !== parentDoc.body) {
+                        observer.observe(observeTarget, { 
+                            childList: true, 
+                            subtree: true 
+                        });
+                        
+                        // Arrêter après 2 secondes
+                        setTimeout(() => observer.disconnect(), 2000);
+                    }
+                }
+            } catch(e) {
+                console.log('Erreur observer:', e);
+            }
+        })();
+        </script>
+    """, height=0)
 
 
 def _render_feedback_buttons(msg_id: str, idx: int):
@@ -152,11 +241,7 @@ def _render_feedback_buttons(msg_id: str, idx: int):
             st.toast("📝 Nous prenons note de votre retour", icon="📝")
             logger.info(f"Feedback négatif pour message {msg_id}")
     
-    with col3:
-        if st.button("📋", key=f"copy_{msg_id}_{idx}", help="Copier la réponse"):
-            st.toast("📋 Réponse copiée !", icon="📋")
-    
-    # Afficher le feedback actuel
+    # Afficher le feedback existant
     if msg_id in st.session_state.feedback:
         feedback_type = st.session_state.feedback[msg_id]
         icon = "✅" if feedback_type == "positive" else "📝"

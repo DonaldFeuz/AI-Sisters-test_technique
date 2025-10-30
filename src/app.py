@@ -200,7 +200,8 @@ def _render_chat_sidebar(conversation_manager: ConversationManager):
             col1, col2 = st.columns([4, 1])
             
             with col1:
-                button_label = f"📝 {conv['title'][:20]}..."
+                title = conv['title'] if len(conv['title']) <= 25 else conv['title'][:25] + '...'
+                button_label = f"📝 {title}"
                 if st.button(button_label, key=f"load_{conv['id']}", use_container_width=True, 
                         disabled=is_current):
                     _load_conversation(conversation_manager, conv["id"])
@@ -405,6 +406,9 @@ def _inject_optimized_css():
             color: white !important;
             transition: all 0.3s;
             font-weight: 500;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
             border-radius: 8px;
         }
         
