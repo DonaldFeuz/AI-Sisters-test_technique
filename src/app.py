@@ -1,6 +1,6 @@
 """
 Application principale Streamlit - RAG Legal Chatbot
-Version avec maquette professionnelle intégrée
+Version AMÉLIORÉE avec design responsive et optimisations
 Cabinet Parenti - Assistant Juridique IA
 """
 import sys
@@ -48,7 +48,7 @@ def main():
         initial_sidebar_state="expanded"
     )
     
-    # CSS de la maquette
+    # CSS de la maquette AMÉLIORÉ avec responsive
     _inject_mockup_css()
     
     # Initialiser les composants (avec cache)
@@ -75,7 +75,7 @@ def main():
     st.markdown("---")
     st.markdown("""
         <div style='text-align: center; color: #666; padding: 1rem; font-size: 0.85rem;'>
-            🔒 Cabinet Parenti - Données confidentielles et sécurisées | Version 1.0 | © 2025
+            🔒 Cabinet Parenti - Données confidentielles et sécurisées | Version 2.0 | © 2025
         </div>
     """, unsafe_allow_html=True)
 
@@ -87,19 +87,18 @@ def _render_sidebar(conversation_manager: ConversationManager, vector_store_mana
     st.markdown("""
         <div class="sidebar-header">
             <h2 style='color: white; margin: 0; font-size: 1.5rem;'>⚖️ Cabinet Parenti</h2>
+            <p style='color: rgba(255,255,255,0.8); font-size: 0.85rem; margin: 0.5rem 0 0 0;'>Assistant IA Juridique</p>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown("<div style='margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
     
-    
-    # Bouton Chat
+    # BOUTONS EN COLONNE (FIX)
     if st.button("💬 Interface Chat", key="nav_chat", use_container_width=True,
                  type="primary" if st.session_state.page == "chat" else "secondary"):
         st.session_state.page = "chat"
         st.rerun()
     
-    # Bouton Documents
     if st.button("📁 Gestion Documents", key="nav_docs", use_container_width=True,
                  type="primary" if st.session_state.page == "documents" else "secondary"):
         st.session_state.page = "documents"
@@ -122,8 +121,7 @@ def _render_chat_sidebar(conversation_manager: ConversationManager):
                 unsafe_allow_html=True)
     
     # Bouton nouvelle conversation
-    if st.button("➕ Nouvelle conversation", key="new_conv", use_container_width=True,
-                 help="Créer une nouvelle conversation"):
+    if st.button("➕ Nouvelle conversation", key="new_conv", use_container_width=True):
         if st.session_state.get("chat_history"):
             conversation_manager.save_conversation(
                 st.session_state.current_conversation_id,
@@ -138,30 +136,52 @@ def _render_chat_sidebar(conversation_manager: ConversationManager):
     st.markdown("<h4 style='color: rgba(255,255,255,0.9); font-size: 0.85rem; margin: 1rem 0 0.5rem 0;'>Conversations récentes</h4>", 
                 unsafe_allow_html=True)
     
-    # Historique
+    # Historique avec suppression (FIX)
     conversations = conversation_manager.list_conversations()
     
+   # Dans la fonction _render_chat_sidebar, remplacer la section conversations :
+
     if not conversations:
         st.markdown("<p style='color: rgba(255,255,255,0.6); font-size: 0.85rem;'>Aucune conversation</p>", 
                     unsafe_allow_html=True)
     else:
-        for conv in conversations[:5]:
+        for conv in conversations[:10]:
             is_current = conv["id"] == st.session_state.get("current_conversation_id", "")
             
-            button_label = f"📄 {conv['title'][:25]}..."
-            if st.button(
-                button_label,
-                key=f"load_{conv['id']}",
-                use_container_width=True,
-                disabled=is_current,
-                help=f"{conv['message_count']} messages"
-            ):
-                _load_conversation(conversation_manager, conv["id"])
-                st.rerun()
+            col1, col2 = st.columns([4, 1])
+            
+            with col1:
+                button_label = f"📝 {conv['title'][:20]}..."
+                if st.button(button_label, key=f"load_{conv['id']}", use_container_width=True, 
+                        disabled=is_current):
+                    _load_conversation(conversation_manager, conv["id"])
+            
+            with col2:
+                if st.button("🗑️", key=f"del_conv_{conv['id']}", help="Supprimer"):
+                    success = conversation_manager.delete_conversation(conv["id"])
+                    if success:
+                        if is_current:
+                            new_id = conversation_manager.generate_conversation_id()
+                            st.session_state.current_conversation_id = new_id
+                            st.session_state.chat_history = []
+                        st.success(f"✅ Conversation supprimée")
+                        st.rerun()
 
+@st.cache_data(ttl=60)
+def get_conversation_preview(conversation_id: str, conversation_manager: ConversationManager) -> dict:
+    """Cache la prévisualisation d'une conversation (1 minute)"""
+    conv_data = conversation_manager.load_conversation(conversation_id)
+    if conv_data:
+        return {
+            "id": conversation_id,
+            "title": conv_data.get("title", "Sans titre"),
+            "message_count": len(conv_data.get("messages", [])),
+            "last_update": conv_data.get("updated_at", "")
+        }
+    return None
 
 def _render_documents_sidebar(vector_store_manager: VectorStoreManager):
-    """Sidebar pour la page Documents"""
+    """Sidebar pour la page Documents avec stats en temps réel"""
     
     st.markdown("<h3 style='color: white; font-size: 0.95rem; margin-bottom: 1rem;'>📊 Statistiques</h3>", 
                 unsafe_allow_html=True)
@@ -170,18 +190,44 @@ def _render_documents_sidebar(vector_store_manager: VectorStoreManager):
     sources = vector_store_manager.get_all_sources()
     doc_count = len(sources)
     
+    # Types de documents
+    doc_types = {}
+    for source in sources:
+        ext = Path(source).suffix.lower()
+        doc_types[ext] = doc_types.get(ext, 0) + 1
+    
     # Afficher les métriques
     st.markdown(f"""
         <div style='background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; color: white;'>
             <div style='margin-bottom: 0.75rem;'>
-                <div style='font-size: 0.85rem; opacity: 0.8;'>Documents</div>
+                <div style='font-size: 0.85rem; opacity: 0.8;'>Documents actifs</div>
                 <div style='font-size: 1.75rem; font-weight: bold;'>{doc_count}</div>
             </div>
             <div style='border-top: 1px solid rgba(255,255,255,0.2); padding-top: 0.75rem; font-size: 0.85rem; opacity: 0.9;'>
-                Dernière mise à jour: Aujourd'hui
+                Dernière mise à jour:<br>
+                <strong>Aujourd'hui</strong>
             </div>
         </div>
     """, unsafe_allow_html=True)
+    
+    # Répartition par type
+    if doc_types:
+        st.markdown("<h4 style='color: rgba(255,255,255,0.9); font-size: 0.85rem; margin: 1rem 0 0.5rem 0;'>Par type de fichier</h4>", 
+                    unsafe_allow_html=True)
+        
+        for ext, count in sorted(doc_types.items()):
+            percentage = (count / doc_count) * 100
+            st.markdown(f"""
+                <div style='margin-bottom: 0.5rem;'>
+                    <div style='display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.25rem;'>
+                        <span>{ext.upper()}</span>
+                        <span>{count} ({percentage:.0f}%)</span>
+                    </div>
+                    <div style='background: rgba(255,255,255,0.2); height: 6px; border-radius: 3px; overflow: hidden;'>
+                        <div style='background: linear-gradient(90deg, #4CAF50 0%, #81C784 100%); width: {percentage}%; height: 100%;'></div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
 
 
 def _load_conversation(conversation_manager: ConversationManager, conversation_id: str):
@@ -224,7 +270,7 @@ def _get_conversation_manager() -> ConversationManager:
 
 
 def _inject_mockup_css():
-    """CSS exact de la maquette"""
+    """CSS exact de la maquette AVEC RESPONSIVE DESIGN"""
     st.markdown("""
         <style>
         /* Import Google Fonts */
@@ -265,54 +311,13 @@ def _inject_mockup_css():
         /* ===== MAIN CONTENT ===== */
         .main {
             background: #fafafa;
-             max-width: 1400px;
-             margin: 0 auto;
+            max-width: 1400px;
+            margin: 0 auto;
         }
         
-        /* Fixer la hauteur de la page sans scroll */
         .main .block-container {
-            max-height: 100vh;
-            overflow: hidden;
-            max-width: 70%;
-            padding-left: 2rem;
-            padding-right: 2rem;
-        }
-
-        /* Fixer le header */
-        .main-header {
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        /* Ajuster la zone de chat pour remplir l'espace disponible */
-        .message-container {
-            max-height: calc(100vh - 400px);
-            overflow-y: auto;
-        }
-        
-        /* Zone de saisie style ChatGPT */
-        .chat-input-container {
-            background: white;
-            border-radius: 24px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
-            border: 1px solid #e5e7eb;
-            transition: all 0.2s;
-        }
-
-        .chat-input-container:focus-within {
-            border-color: #3b82f6;
-            box-shadow: 0 4px 16px rgba(59,130,246,0.2);
-        }
-
-        /* Supprimer les styles par défaut de Streamlit */
-        [data-testid="stForm"] {
-            border: none !important;
-            padding: 0 !important;
-        }
-
-        .stTextInput > div > div {
-            border: none !important;
+            max-width: 85%;
+            padding: 2rem;
         }
         
         /* ===== HEADER ===== */
@@ -476,6 +481,11 @@ def _inject_mockup_css():
             transition: all 0.3s;
         }
         
+        .upload-zone:hover {
+            border-color: #1565c0;
+            background: #e3f2fd;
+        }
+        
         .upload-icon {
             font-size: 3rem;
             margin-bottom: 1rem;
@@ -546,6 +556,19 @@ def _inject_mockup_css():
             background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
         }
         
+        /* ===== INPUT STYLING ===== */
+        .stTextInput input {
+            border: 2px solid #e5e7eb !important;
+            border-radius: 12px !important;
+            padding: 0.75rem 1rem !important;
+            transition: all 0.3s !important;
+        }
+        
+        .stTextInput input:focus {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+        }
+        
         /* ===== ANIMATIONS ===== */
         @keyframes slideIn {
             from {
@@ -570,17 +593,6 @@ def _inject_mockup_css():
             }
         }
         
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
         /* ===== SCROLLBAR ===== */
         ::-webkit-scrollbar {
             width: 8px;
@@ -600,17 +612,81 @@ def _inject_mockup_css():
             background: #555;
         }
         
+        /* ===== RESPONSIVE DESIGN ===== */
+        @media (max-width: 768px) {
+            .main .block-container {
+                max-width: 100%;
+                padding: 1rem;
+            }
+            
+            .main-header {
+                padding: 1.5rem;
+            }
+            
+            .main-header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .message-bubble {
+                max-width: 90%;
+                padding: 0.75rem 1rem;
+            }
+            
+            .doc-card {
+                padding: 1rem;
+            }
+            
+            .upload-zone {
+                padding: 2rem 1rem;
+            }
+            
+            .stat-card {
+                padding: 1.5rem;
+            }
+            
+            .pipeline-step {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            
+            .info-panel {
+                padding: 1rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .main-header h1 {
+                font-size: 1.25rem;
+            }
+            
+            .message-bubble {
+                max-width: 95%;
+                font-size: 0.9rem;
+            }
+            
+            .stat-card .number {
+                font-size: 2rem;
+            }
+        }
+        
         /* ===== HIDE STREAMLIT ELEMENTS ===== */
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
         header {visibility: hidden;}
+        
+        /* ===== TOAST NOTIFICATIONS ===== */
+        .stToast {
+            background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%);
+            color: white;
+            border-radius: 8px;
+        }
         </style>
     """, unsafe_allow_html=True)
 
 
 if __name__ == "__main__":
     try:
-        logger.info("🚀 Démarrage de l'application RAG Legal Chatbot")
+        logger.info("🚀 Démarrage de l'application RAG Legal Chatbot v2.0")
         main()
     except Exception as e:
         logger.error(f"❌ Erreur fatale: {e}")
