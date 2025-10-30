@@ -209,8 +209,10 @@ __marimo__/
 # Data
 data/uploads/*
 data/vector_store/*
+data/conversations/*
 !data/uploads/.gitkeep
 !data/vector_store/.gitkeep
+!data/conversations/.gitkeep
 
 # Streamlit
 .streamlit/secrets.toml
