@@ -11,6 +11,7 @@ DATA_DIR = BASE_DIR / "data"
 UPLOAD_DIR = DATA_DIR / "uploads"
 VECTOR_STORE_DIR = DATA_DIR / "vector_store"
 LOGS_DIR = BASE_DIR / "logs"
+CONVERSATIONS_DIR = DATA_DIR / "conversations"
 
 # Créer les dossiers s'ils n'existent pas
 for directory in [UPLOAD_DIR, VECTOR_STORE_DIR, LOGS_DIR]:
