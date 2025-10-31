@@ -137,8 +137,6 @@ def _render_messages(messages: List[Dict]):
                 </div>
             """, unsafe_allow_html=True)
             
-            # Boutons de feedback
-            _render_feedback_buttons(msg_id, idx)
     
     # Script CORRIGÉ - Scroll UNIQUEMENT le conteneur de chat (pas toute la page)
     st.components.v1.html("""
@@ -223,31 +221,6 @@ def _render_messages(messages: List[Dict]):
         })();
         </script>
     """, height=0)
-
-
-def _render_feedback_buttons(msg_id: str, idx: int):
-    """Affiche les boutons de feedback pour chaque message assistant"""
-    col1, col2, col3, col4 = st.columns([1, 1, 1, 9])
-    
-    with col1:
-        if st.button("👍", key=f"like_{msg_id}_{idx}", help="Réponse utile"):
-            st.session_state.feedback[msg_id] = "positive"
-            st.toast("✅ Merci pour votre retour !", icon="✅")
-            logger.info(f"Feedback positif pour message {msg_id}")
-    
-    with col2:
-        if st.button("👎", key=f"dislike_{msg_id}_{idx}", help="Réponse peu utile"):
-            st.session_state.feedback[msg_id] = "negative"
-            st.toast("📝 Nous prenons note de votre retour", icon="📝")
-            logger.info(f"Feedback négatif pour message {msg_id}")
-    
-    # Afficher le feedback existant
-    if msg_id in st.session_state.feedback:
-        feedback_type = st.session_state.feedback[msg_id]
-        icon = "✅" if feedback_type == "positive" else "📝"
-        with col4:
-            st.markdown(f"<small style='color: #666;'>{icon} Feedback enregistré</small>", 
-                       unsafe_allow_html=True)
 
 
 def _render_input_area(
