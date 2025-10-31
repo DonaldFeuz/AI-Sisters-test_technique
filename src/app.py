@@ -136,7 +136,7 @@ def _render_sidebar_toggle(conversation_manager: ConversationManager, vector_sto
         
         with st.sidebar:
             st.markdown("<div style='margin: 1rem 0;'></div>", unsafe_allow_html=True)
-            if st.button("☰", key="open_sidebar", help="Ouvrir le menu", use_container_width=True):
+            if st.button("☰", key="open_sidebar", use_container_width=True):
                 st.session_state.sidebar_open = True
                 st.rerun()
 
@@ -313,11 +313,11 @@ def _inject_mini_sidebar_css():
     st.markdown("""
         <style>
         section[data-testid="stSidebar"] {
-            width: 60px !important;
-            min-width: 60px !important;
+            width: 70px !important;
+            min-width: 40px !important;
         }
         section[data-testid="stSidebar"] > div:first-child {
-            width: 60px !important;
+            width: 70px !important;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -447,7 +447,7 @@ def _inject_optimized_css():
             border-radius: 8px !important;
             font-size: 1.5rem !important;
             font-weight: bold !important;
-            padding: 0.75rem 0.5rem !important;
+            padding: 0.75rem 0.75rem !important;
             cursor: pointer !important;
             box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3) !important;
             transition: all 0.3s ease !important;
