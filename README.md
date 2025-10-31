@@ -545,52 +545,24 @@ Thumbs.db
 - [ ] Recherche hybride (keyword + sémantique)
 - [ ] Intégration avec système de gestion documentaire
 
----
 
-## 📝 Licence
-
-Ce projet est sous licence **MIT**.
-```
-MIT License
-
-Copyright (c) 2025 Cabinet Emilia Parenti
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software...
-```
-
-Voir le fichier [LICENSE](LICENSE) pour plus de détails.
 
 ---
 
 ## 👥 Auteurs
 
-- **Développeur Principal** : [Votre Nom]
+- **Développeur Principal** : Donald FEUZING NTEMMA
 - **Client** : Cabinet d'avocats Emilia Parenti
-- **Contact** : votre.email@example.com
+- **Contact** : ntemmado@gmail.com
 
 ---
 
 ## 🙏 Remerciements
 
+- [AI Siters](https://aisisters.ai/) pour ce test, une occasion d'apprendre. 
 - [OpenAI](https://openai.com/) pour l'API GPT
 - [LangChain](https://www.langchain.com/) pour le framework RAG
 - [Streamlit](https://streamlit.io/) pour le framework web
 - [Facebook AI Research](https://ai.facebook.com/) pour FAISS
-
----
-
-## 📞 Support
-
-Pour toute question ou problème :
-
-1. 📖 Consulter la section [Dépannage](#-dépannage)
-2. 📧 Contacter : support@example.com
-3. 🐛 Ouvrir une issue sur GitHub
-
----
 
 **Fait avec ❤️ pour le Cabinet Emilia Parenti**
