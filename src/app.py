@@ -883,6 +883,9 @@ def _inject_optimized_css():
             color: white;
             border-radius: 8px;
         }
+        
+        /* ===== ZOOM ===== */
+        html, body, .main, .block-container { zoom: 0.99 !important; }
         </style>
     """, unsafe_allow_html=True)
 
