@@ -324,6 +324,7 @@ rag-legal-chatbot/
 │       └── document_manager.py     # Gestion documents
 │
 ├── data/                        # Données (créé automatiquement)
+    ├── conversations/           # Historique des conversations
 │   ├── uploads/                 # Fichiers uploadés
 │   └── vector_store/            # Base vectorielle
 │       ├── faiss_index/         # Index FAISS
