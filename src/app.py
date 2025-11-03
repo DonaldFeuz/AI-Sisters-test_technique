@@ -389,6 +389,14 @@ def _inject_optimized_css():
             background: linear-gradient(180deg, #1e3a5f 0%, #2d5a8c 100%);
             padding-top: 1px !important;
             top: 125px !important;
+            /* Ensure the sidebar uses the full available height under the fixed header
+               and allows internal scrolling so the last item is not clipped. */
+            bottom: 0 !important;
+            height: calc(100vh - 125px) !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 1.5rem !important; /* extra space so last item isn't against the edge */
+            box-sizing: border-box !important;
         }
 
         [data-testid="stSidebar"] > div:first-child {
